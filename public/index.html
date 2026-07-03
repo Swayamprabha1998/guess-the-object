@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Guess the Object — Join Game</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="standalone-player">
+
+  <div class="blob-field">
+    <div class="blob b1"></div>
+    <div class="blob b2"></div>
+    <div class="blob b3"></div>
+    <div class="blob b4"></div>
+  </div>
+
+  <div class="standalone-container">
+    <div class="screen-wrapper">
+
+      <!-- STATE 1: SERVER CONNECTION (Only shown if running in native app wrapper or needs connection setup) -->
+      <div id="state-connect" class="player-state">
+        <div class="join-header">
+          <div class="join-title">Connect to Server</div>
+          <div class="join-sub">InfinityVerse Got Latent</div>
+        </div>
+
+        <div class="field-label">Server Address</div>
+        <input type="text" id="connect-url-input" class="name-input glass" placeholder="http://192.168.1.100:3000">
+
+        <div class="join-cta-row">
+          <button id="connect-btn" class="join-cta">Connect to Game</button>
+        </div>
+
+        <div class="field-label" style="text-align: center; margin-top: 24px;">OR</div>
+
+        <div class="join-cta-row" style="padding-top: 10px;">
+          <button id="scan-qr-btn" class="join-cta" style="background: linear-gradient(120deg, var(--mint) 0%, var(--violet) 100%);">Scan Host QR Code</button>
+        </div>
+
+        <!-- Camera Scanner view -->
+        <div id="scanner-view" style="display: none;">
+          <div class="field-label">Point camera at Host's QR Code</div>
+          <div class="scanner-container">
+            <video id="scanner-video" playsinline></video>
+            <div class="scanner-overlay">
+              <div class="scanner-laser"></div>
+            </div>
+          </div>
+          <div class="join-cta-row" style="padding-top: 10px;">
+            <button id="cancel-scan-btn" class="join-cta" style="background: var(--ink-soft);">Cancel Scan</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- STATE 2: JOIN ROOM (NAME & AVATAR) -->
+      <div id="state-join" class="player-state active">
+        <div class="join-header">
+          <div class="join-title">Join the game</div>
+          <div class="join-sub">InfinityVerse Got Latent</div>
+        </div>
+
+        <!-- Displays current connected server in a subtle badge -->
+        <div id="server-connected-badge" style="font-size: 9px; color: var(--ink-soft); text-align: center; margin-top: -2px; display: none;">
+          Connected to: <span id="server-url-display">localhost</span>
+        </div>
+
+        <div class="field-label">Room Code</div>
+        <input type="text" id="room-code-input" class="name-input glass" style="text-transform: uppercase;" placeholder="Enter 4-letter code" maxlength="4">
+
+        <div class="field-label">Your name</div>
+        <input type="text" id="player-name-input" class="name-input glass" placeholder="Enter your name" maxlength="12">
+
+        <div class="field-label">Pick your avatar</div>
+        <div class="avatar-grid" id="avatar-grid">
+          <div class="avatar-opt glass" data-avatar="🦊">🦊</div>
+          <div class="avatar-opt glass" data-avatar="🐼">🐼</div>
+          <div class="avatar-opt glass" data-avatar="🐸">🐸</div>
+          <div class="avatar-opt glass" data-avatar="🦄">🦄</div>
+          <div class="avatar-opt glass" data-avatar="🐙">🐙</div>
+          <div class="avatar-opt glass" data-avatar="🐨">🐨</div>
+          <div class="avatar-opt glass" data-avatar="🦖">🦖</div>
+          <div class="avatar-opt glass" data-avatar="🐝">🐝</div>
+        </div>
+
+        <div class="join-cta-row">
+          <button id="join-room-btn" class="join-cta">Join the room</button>
+        </div>
+      </div>
+
+
+
+      <!-- STATE 4: WAITING ROOM LOBBY -->
+      <div id="state-waiting" class="player-state">
+        <div class="join-header">
+          <div class="join-title">Joined Room!</div>
+          <div class="join-sub">Waiting for Host to start the game</div>
+        </div>
+
+        <div class="me-chip glass" id="me-waiting-chip" style="margin: 30px auto; width: calc(100% - 48px);">
+          <div class="me-chip-avatar" id="me-waiting-avatar" style="background: linear-gradient(135deg, var(--mint), var(--yellow));">🐼</div>
+          <div>
+            <div class="me-chip-text" id="me-waiting-name">Priya is in</div>
+            <div class="me-chip-sub" id="waiting-status-text">waiting for game to start...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STATE 5: GUESSING SCREEN -->
+      <div id="state-guessing" class="player-state">
+        <div class="join-header">
+          <div class="join-title" id="guessing-round-title">Round 1</div>
+          <div class="join-sub">Guess the object on the projector!</div>
+        </div>
+
+        <div class="me-chip glass" style="margin: 10px 24px; background: rgba(255,255,255,0.35);">
+          <div class="me-chip-avatar" id="me-guessing-avatar" style="background: linear-gradient(135deg, var(--mint), var(--yellow));">🐼</div>
+          <div>
+            <div class="me-chip-text" id="me-guessing-name">Priya</div>
+            <div class="me-chip-sub" id="me-guessing-score">Score: 0%</div>
+          </div>
+        </div>
+
+        <!-- Clue / Hint Card -->
+        <div class="guess-input-card glass" id="hint-card" style="margin: 10px 24px 0; padding: 12px 16px;">
+          <div style="font-size: 9px; font-weight: 700; color: var(--violet-d); letter-spacing: 0.5px; margin-bottom: 4px;">ROUND CLUE</div>
+          <div id="hint-description" style="font-size: 11px; color: var(--ink); line-height: 1.4; font-style: italic; margin-bottom: 8px;">Waiting for round clue...</div>
+          <div id="hint-blanks" style="font-family: 'Space Mono', monospace; font-size: 16px; font-weight: 700; color: var(--ink); letter-spacing: 2px; text-align: center;">_ _ _ _ _ _</div>
+        </div>
+
+        <div class="guess-input-card glass" id="guess-form-container">
+          <div class="guess-input-label">Your guess</div>
+          <form id="guess-form" class="guess-field-row" onsubmit="return false;">
+            <input type="text" id="guess-input" class="guess-field glass" placeholder="What is the object?" autocomplete="off" required>
+            <button type="submit" id="send-guess-btn" class="send-btn">➤</button>
+          </form>
+          <!-- Inline feedback for previous guesses -->
+          <div id="last-guess-feedback" style="font-size: 12px; text-align: center; color: var(--ink-soft); margin-top: 12px; display: none; font-weight: 500;">
+            Last guess: <span id="last-guess-text" style="font-weight: 700; color: var(--violet-d);">""</span> — <span id="last-guess-score" style="font-weight: 700; color: var(--coral);">0% similarity</span>
+          </div>
+        </div>
+
+        <!-- Success card shown only when player guesses correctly -->
+        <div id="correct-guess-card" class="guess-input-card glass" style="display: none; text-align: center; background: rgba(45, 212, 191, 0.15); border-color: var(--mint);">
+          <div style="font-size: 32px; margin-bottom: 6px;">🎉</div>
+          <div style="font-size: 16px; font-weight: 800; color: var(--ink);">Correct!</div>
+          <div style="font-size: 12px; color: var(--ink-soft); margin-bottom: 12px;">You successfully guessed the object!</div>
+          <div style="font-size: 10px; font-weight: 700; color: var(--ink-soft); letter-spacing: 0.5px;">POINTS EARNED THIS ROUND</div>
+          <div style="font-size: 28px; font-weight: 800; color: var(--mint);" id="correct-score-display">+92%</div>
+        </div>
+      </div>
+
+      <!-- STATE 6: ROUND REVEAL WAITING -->
+      <div id="state-round-reveal" class="player-state">
+        <div class="join-header">
+          <div class="join-title" id="reveal-round-title">Round Over</div>
+          <div class="join-sub" id="reveal-correct-name">Target Object revealed!</div>
+        </div>
+
+        <div class="me-chip glass" style="margin: 20px auto; width: calc(100% - 48px); text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 10px; padding: 20px;">
+          <div style="font-size: 11px; font-weight: 700; color: var(--ink-soft);">YOUR ROUND SCORE</div>
+          <div style="font-size: 36px; font-weight: 800; color: var(--coral);" id="round-score-val">--%</div>
+          <div style="font-size: 12px; color: var(--ink-soft);" id="round-score-feedback">Good attempt!</div>
+        </div>
+      </div>
+
+      <!-- STATE 7: GAME OVER -->
+      <div id="state-game-over" class="player-state">
+        <div class="join-header">
+          <div class="join-title">Game Over!</div>
+          <div class="join-sub">InfinityVerse Got Latent</div>
+        </div>
+
+        <div class="me-chip glass" style="margin: 30px auto; width: calc(100% - 48px); text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 10px; padding: 24px;">
+          <div style="font-size: 11px; font-weight: 700; color: var(--ink-soft);">YOUR FINAL SCORE</div>
+          <div style="font-size: 42px; font-weight: 800; color: var(--violet-d);" id="final-score-val">0%</div>
+          <div style="font-size: 12px; color: var(--ink-soft);" id="final-rank-val">Check the Host screen for final prize winners!</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Client-side libraries: Socket.IO & jsQR for QR Code Scanner -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+  <script src="js/player.js"></script>
+</body>
+</html>

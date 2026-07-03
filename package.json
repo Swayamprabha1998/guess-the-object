@@ -1,0 +1,30 @@
+{
+  "name": "guess-the-object-game",
+  "version": "1.0.0",
+  "description": "Guess the Object AI multiplayer game with real-time feedback",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "openai": "^4.52.7",
+    "qrcode": "^1.5.3",
+    "socket.io": "^4.7.5"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.1.0",
+    "@capacitor/core": "^6.1.0"
+  },
+  "keywords": [
+    "multiplayer",
+    "game",
+    "openai",
+    "socket.io",
+    "real-time"
+  ],
+  "author": "Antigravity",
+  "license": "ISC"
+}

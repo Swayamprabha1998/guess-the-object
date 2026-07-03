@@ -1,0 +1,6 @@
+{
+  "appId": "com.latent.guesstheobject",
+  "appName": "Guess the Object AI",
+  "webDir": "public",
+  "bundledWebRuntime": false
+}

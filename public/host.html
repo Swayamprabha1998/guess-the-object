@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Guess the Object — Host View</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="standalone-host">
+
+  <div class="blob-field">
+    <div class="blob b1"></div>
+    <div class="blob b2"></div>
+    <div class="blob b3"></div>
+    <div class="blob b4"></div>
+  </div>
+
+  <div class="standalone-host-container glass">
+    <div class="host-wrapper">
+
+      <!-- HEADER (Shared across game states) -->
+      <div class="header">
+        <div class="brand">
+          <div class="brand-badge">IV</div>
+          <div>
+            <div class="brand-name">Got Latent</div>
+            <div class="brand-sub">Guess the Object</div>
+          </div>
+        </div>
+        <div class="round-pill glass" id="host-round-pill">Lobby</div>
+      </div>
+
+      <!-- STATE 1: HOST LOBBY -->
+      <div id="host-state-lobby" class="host-state active">
+        <div class="host-lobby">
+          <div class="host-lobby-qr">
+            <!-- QR code generated dynamically using canvas -->
+            <div class="qr-box glass" id="host-qr-box"></div>
+            <div class="qr-caption" style="margin-top: 5px;">scan to join, or go to</div>
+            <div class="qr-link" id="host-join-link">latent.game/join/----</div>
+            <div class="host-lobby-code" id="host-room-code-display">ROOM: ----</div>
+          </div>
+
+          <p class="host-lobby-instructions">Waiting for Players to Join...</p>
+          <div class="host-lobby-players" id="host-lobby-players-container">
+            <!-- Joined players will list here dynamically as:
+            <div class="lobby-player-chip glass"><span class="lobby-player-avatar">🐼</span> Priya</div>
+            -->
+          </div>
+
+          <div class="host-start-btn-row">
+            <button id="start-game-btn" class="host-start-btn" style="display: none;">Start Game</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- STATE 2: ACTIVE GAME ROUND -->
+      <div id="host-state-active" class="host-state">
+        <!-- 3D rotating stage -->
+        <div class="stage-wrap">
+          <div class="ring-bg"></div>
+          <div class="ring-progress" id="host-timer-ring"></div>
+          <div class="stage-glass glass">
+            <div class="object-container" id="object-reveal-container">
+              <!-- Hidden source image -->
+              <img id="host-object-image" src="" alt="Secret Object" style="display: none;">
+              <!-- Pixelating canvas reveal -->
+              <canvas id="host-object-canvas" class="object-image" width="300" height="300" style="display: none; border-radius: 20px;"></canvas>
+              <!-- Default Spinning 3D CSS facets shown before/during load -->
+              <div class="object-3d" id="host-object-3d-placeholder">
+                <div class="facet f1"></div>
+                <div class="facet f2"></div>
+                <div class="facet f3"></div>
+                <div class="facet f4"></div>
+                <div class="facet f5"></div>
+              </div>
+            </div>
+          </div>
+          <div class="timer-badge glass" id="host-timer-text">00:30</div>
+        </div>
+
+        <!-- Guess Lane (Floating guesses rise from here) -->
+        <div class="guess-lane" id="host-guess-lane">
+          <!-- Floating guess bubbles will be dynamically appended here:
+          <div class="bubble theme-violet g1">
+            <div class="bubble-avatar">🦊</div>
+            <div class="bubble-text">
+              <span class="bubble-name">Rehan</span>
+              <span class="bubble-guess">a rocket??</span>
+            </div>
+          </div>
+          -->
+        </div>
+
+        <!-- Live Leaderboard -->
+        <div class="board glass">
+          <p class="board-title">Live leaderboard</p>
+          <div class="lb-list" id="host-leaderboard-list">
+            <!-- Top players list dynamically:
+            <div class="lb-row">
+              <span class="lb-rank">🥇</span>
+              <div class="lb-avatar" style="background: linear-gradient(135deg,var(--yellow),var(--coral));">🐼</div>
+              <span class="lb-name">Priya</span>
+              <div class="lb-bar-track"><div class="lb-bar-fill" style="width:92%; background:var(--coral);"></div></div>
+              <span class="lb-score">92%</span>
+            </div>
+            -->
+          </div>
+        </div>
+      </div>
+
+      <!-- STATE 3: ROUND REVEAL OVERLAY -->
+      <div id="host-round-reveal-box" class="reveal-info-box" style="display: none;">
+        <div class="reveal-title" id="reveal-state-title">Round Complete!</div>
+        <div style="font-size: 11px; text-transform: uppercase; color: var(--mint); font-weight: 700; letter-spacing: 1px;">THE OBJECT IS</div>
+        <div class="reveal-object-name" id="reveal-object-name">SNEAKER</div>
+        <p class="reveal-description" id="reveal-object-description">A shoe designed for sports or other forms of physical exercise, now widely worn for everyday casual wear.</p>
+        <button id="next-round-btn" class="reveal-next-btn">Next Round</button>
+      </div>
+
+      <!-- STATE 4: GAME OVER / RESULTS VIEW -->
+      <div id="host-state-gameover" class="host-state">
+        <div class="end-game-box">
+          <div class="end-title">Game Results</div>
+          
+          <!-- Podium for Top 3 -->
+          <div class="podium-container" id="results-podium">
+            <!-- Second Place -->
+            <div class="podium-step second" id="podium-2nd" style="visibility: hidden;">
+              <div class="podium-avatar" style="background: var(--violet);">🦊</div>
+              <div class="podium-name">Rehan</div>
+              <div class="podium-block">2nd</div>
+            </div>
+            <!-- First Place -->
+            <div class="podium-step first" id="podium-1st" style="visibility: hidden;">
+              <div class="podium-avatar" style="background: var(--coral);">🐼</div>
+              <div class="podium-name">Priya</div>
+              <div class="podium-block">1st</div>
+            </div>
+            <!-- Third Place -->
+            <div class="podium-step third" id="podium-3rd" style="visibility: hidden;">
+              <div class="podium-avatar" style="background: var(--mint);">🦄</div>
+              <div class="podium-name">Aditi</div>
+              <div class="podium-block">3rd</div>
+            </div>
+          </div>
+
+          <!-- Predictions & Prize Distribution List -->
+          <div class="board glass" style="margin: 0; width: 100%; text-align: left;">
+            <p class="board-title">Award Distribution (InfinityVerse Rules)</p>
+            <div class="prediction-results">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Rank</th>
+                    <th>Player</th>
+                    <th>Final Score</th>
+                    <th>Award Winner</th>
+                  </tr>
+                </thead>
+                <tbody id="host-awards-table-body">
+                  <!-- Filled dynamically:
+                  <tr>
+                    <td>🐼 Priya</td>
+                    <td>92%</td>
+                    <td>90%</td>
+                    <td>2%</td>
+                    <td class="winner-highlight">🥇 ₹2,000 Voucher</td>
+                  </tr>
+                  -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+          
+          <!-- Play Again button for Host to restart -->
+          <div style="margin-top: 14px; display: flex; justify-content: center; width: 100%;">
+            <button id="host-restart-btn" class="host-start-btn" style="background: linear-gradient(135deg, var(--mint), var(--violet)); padding: 10px 30px;">Play Again</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Client-side libraries: Socket.IO & QRCode.js (using dynamic canvas generation) -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/qrcode.min.js"></script> <!-- We will copy or serve a QR code generation utility -->
+  <script src="js/host.js"></script>
+</body>
+</html>

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Guess the Object — Join + Host screens (Demo View)</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    /* Specific overrides for iframe layout inside mockups */
+    .demo-iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      border-radius: 36px;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body class="demo-view">
+
+  <div class="blob-field">
+    <div class="blob b1"></div>
+    <div class="blob b2"></div>
+    <div class="blob b3"></div>
+    <div class="blob b4"></div>
+  </div>
+
+  <div class="row">
+
+    <!-- LEFT COLUMN: PLAYER PHONE -->
+    <div class="col">
+      <div class="col-label">Player's phone</div>
+      <div class="col-sub">join screen + guess bar</div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="phone-screen">
+          <!-- We point this to index.html with a query param indicating it is running in demo mode -->
+          <iframe id="player-iframe" class="demo-iframe" src="index.html?mode=demo"></iframe>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN: HOST SCREEN (Projector Mockup) -->
+    <div class="col">
+      <div class="col-label">Host screen</div>
+      <div class="col-sub">projector, everyone watches this</div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="phone-screen">
+          <!-- We point this to host.html with a query param indicating it is running in demo mode -->
+          <iframe id="host-iframe" class="demo-iframe" src="host.html?mode=demo"></iframe>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // Demo Helper Script to bridge the Host and Player frames automatically
+    window.addEventListener('message', (event) => {
+      const playerIframe = document.getElementById('player-iframe');
+      const hostIframe = document.getElementById('host-iframe');
+
+      if (event.data && event.data.type === 'ROOM_CREATED') {
+        const roomCode = event.data.roomCode;
+        const serverUrl = event.data.serverUrl;
+        
+        // Pass the created Room Code to the player iframe to auto-fill it
+        if (playerIframe && playerIframe.contentWindow) {
+          playerIframe.contentWindow.postMessage({
+            type: 'AUTO_FILL_ROOM',
+            roomCode: roomCode,
+            serverUrl: serverUrl
+          }, '*');
+        }
+      }
+    });
+  </script>
+</body>
+</html>
