@@ -121,11 +121,32 @@
           </div>
         </div>
 
+        <!-- Rotating image stage with timer ring — same as host -->
+        <div id="player-stage-wrap" class="player-mini-stage" style="display: none;">
+          <div class="ring-bg"></div>
+          <div class="ring-progress" id="player-timer-ring"></div>
+          <div class="stage-glass glass">
+            <div class="object-container">
+              <img id="player-object-image" src="" alt="Secret Object" style="display: none;">
+              <canvas id="player-object-canvas" class="object-image" width="160" height="160" style="display: none; border-radius: 14px;"></canvas>
+              <div class="object-3d" id="player-object-3d">
+                <div class="facet f1"></div>
+                <div class="facet f2"></div>
+                <div class="facet f3"></div>
+                <div class="facet f4"></div>
+                <div class="facet f5"></div>
+              </div>
+            </div>
+          </div>
+          <div class="timer-badge glass" id="player-timer-text">00:30</div>
+        </div>
+
         <!-- Clue / Hint Card -->
         <div class="guess-input-card glass" id="hint-card" style="margin: 10px 24px 0; padding: 12px 16px;">
           <div style="font-size: 9px; font-weight: 700; color: var(--violet-d); letter-spacing: 0.5px; margin-bottom: 4px;">ROUND CLUE</div>
           <div id="hint-description" style="font-size: 11px; color: var(--ink); line-height: 1.4; font-style: italic; margin-bottom: 8px;">Waiting for round clue...</div>
           <div id="hint-blanks" style="font-family: 'Space Mono', monospace; font-size: 16px; font-weight: 700; color: var(--ink); letter-spacing: 2px; text-align: center;">_ _ _ _ _ _</div>
+          <div id="hint-letter-count" style="font-size: 10px; font-weight: 600; color: var(--ink-soft); text-align: center; margin-top: 6px; letter-spacing: 0.3px;"></div>
         </div>
 
         <div class="guess-input-card glass" id="guess-form-container">

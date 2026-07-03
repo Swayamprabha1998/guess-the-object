@@ -33,6 +33,11 @@ const objectPlaceholder = document.getElementById('host-object-3d-placeholder');
 const guessLane = document.getElementById('host-guess-lane');
 const leaderboardList = document.getElementById('host-leaderboard-list');
 
+// Hint Card Elements
+const hostHintDescription = document.getElementById('host-hint-description');
+const hostHintBlanks      = document.getElementById('host-hint-blanks');
+const hostHintCount       = document.getElementById('host-hint-count');
+
 // Reveal Overlay Elements
 const revealOverlay = document.getElementById('host-round-reveal-box');
 const revealTitle = document.getElementById('reveal-state-title');
@@ -183,6 +188,14 @@ socket.on('startRound', (data) => {
     drawPixelatedImage();
   };
   
+  // Update hint card
+  if (hostHintDescription) hostHintDescription.textContent = data.description || '';
+  if (hostHintBlanks)      hostHintBlanks.textContent      = data.wordPattern  || '';
+  if (hostHintCount) {
+    const n = (data.wordPattern || '').split('').filter(c => c === '_').length;
+    hostHintCount.textContent = n ? `${n} letter${n !== 1 ? 's' : ''}` : '';
+  }
+
   // Clear Floating Guess Lane
   guessLane.innerHTML = '';
   

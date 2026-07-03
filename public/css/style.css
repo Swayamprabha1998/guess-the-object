@@ -490,6 +490,57 @@ body.demo-view {
 }
 
 
+/* Player Mini Stage (same design as host, scaled for phone) */
+.player-mini-stage {
+  position: relative;
+  margin: 8px auto 0;
+  width: 200px;
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.player-mini-stage .stage-glass {
+  width: 158px;
+  height: 158px;
+}
+
+/* Host Hint Card (description + blanks + letter count, sits below the stage) */
+.host-hint-card {
+  position: relative;
+  z-index: 5;
+  margin: 6px 14px 0;
+  border-radius: 16px;
+  padding: 8px 16px;
+  text-align: center;
+}
+
+.host-hint-description {
+  font-size: 11px;
+  font-style: italic;
+  color: var(--ink-soft);
+  line-height: 1.4;
+  margin-bottom: 5px;
+}
+
+.host-hint-blanks {
+  font-family: 'Space Mono', monospace;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: 3px;
+}
+
+.host-hint-count {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--violet-d);
+  letter-spacing: 0.5px;
+  margin-top: 3px;
+  text-transform: uppercase;
+}
+
 /* Guessing View */
 .guess-input-card {
   margin: 22px 24px 0;

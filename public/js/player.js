@@ -61,6 +61,59 @@ const finalRankVal = document.getElementById('final-rank-val');
 let qrStream = null;
 let scanning = false;
 
+// ── Player stage (rotating image + timer ring) ──────────────────────────────
+const playerStageWrap   = document.getElementById('player-stage-wrap');
+const playerObjectImage = document.getElementById('player-object-image');
+const playerObjectCanvas= document.getElementById('player-object-canvas');
+const playerObject3d    = document.getElementById('player-object-3d');
+const playerTimerRing   = document.getElementById('player-timer-ring');
+const playerTimerTextEl = document.getElementById('player-timer-text');
+let playerTimerVal = 30;
+let playerTimerMax = 30;
+let playerTimerInterval = null;
+
+function updatePlayerTimerUI() {
+  const min = Math.floor(playerTimerVal / 60);
+  const sec = playerTimerVal % 60;
+  if (playerTimerTextEl) {
+    playerTimerTextEl.textContent =
+      `${String(min).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+  }
+  if (playerTimerRing) {
+    const deg = (playerTimerVal / playerTimerMax) * 360;
+    playerTimerRing.style.background = playerTimerVal > 0
+      ? `conic-gradient(var(--coral) 0deg, var(--yellow) ${deg}deg, rgba(124,92,252,0.12) ${deg}deg 360deg)`
+      : `rgba(124,92,252,0.12)`;
+  }
+  drawPlayerPixelatedImage();
+}
+
+function drawPlayerPixelatedImage() {
+  if (!playerObjectImage || !playerObjectCanvas) return;
+  if (!playerObjectImage.complete || playerObjectImage.naturalWidth === 0) return;
+  const canvas = playerObjectCanvas;
+  const ctx = canvas.getContext('2d');
+  if (playerTimerVal === 0) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(playerObjectImage, 0, 0, canvas.width, canvas.height);
+    return;
+  }
+  const elapsedRatio = (playerTimerMax - playerTimerVal) / playerTimerMax;
+  const currentRes = Math.max(1, Math.floor(6 + (150 - 6) * Math.pow(elapsedRatio, 2)));
+  const tmp = document.createElement('canvas');
+  tmp.width = tmp.height = currentRes;
+  const tctx = tmp.getContext('2d');
+  tctx.imageSmoothingEnabled = false;
+  tctx.drawImage(playerObjectImage, 0, 0, currentRes, currentRes);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.imageSmoothingEnabled = false;
+  ctx.mozImageSmoothingEnabled = false;
+  ctx.webkitImageSmoothingEnabled = false;
+  ctx.drawImage(tmp, 0, 0, currentRes, currentRes, 0, 0, canvas.width, canvas.height);
+}
+// ────────────────────────────────────────────────────────────────────────────
+
 
 // Initialize View Setup
 function showState(stateName) {
@@ -162,18 +215,45 @@ function initSocket(url) {
     guessingRoundTitle.textContent = `Round ${currentRound} / ${data.totalRounds}`;
     guessingScore.textContent = `Score: ${currentScore}%`;
 
-    // Update clue hints
+    // Update clue hints + letter count
     if (hintDesc) hintDesc.textContent = data.description || 'Waiting for clue...';
     if (hintBlanks) hintBlanks.textContent = data.wordPattern || '';
+    const letterCountEl = document.getElementById('hint-letter-count');
+    if (letterCountEl) {
+      const n = (data.wordPattern || '').split('').filter(c => c === '_').length;
+      letterCountEl.textContent = n ? `${n} letter${n !== 1 ? 's' : ''}` : '';
+    }
 
     // Reset guess inputs
     guessInput.value = '';
     guessInput.disabled = false;
     if (sendGuessBtn) sendGuessBtn.disabled = false;
-
     guessFormContainer.style.display = 'block';
     lastGuessFeedback.style.display = 'none';
     correctGuessCard.style.display = 'none';
+
+    // ── Player stage ──
+    playerTimerMax = data.duration || 30;
+    playerTimerVal = data.duration || 30;
+    if (playerTimerInterval) clearInterval(playerTimerInterval);
+    if (playerStageWrap) playerStageWrap.style.display = 'flex';
+    if (playerObject3d)    playerObject3d.style.display = 'block';
+    if (playerObjectCanvas) playerObjectCanvas.style.display = 'none';
+    updatePlayerTimerUI();
+    // Start timer immediately — synced with host
+    playerTimerInterval = setInterval(() => {
+      playerTimerVal = Math.max(0, playerTimerVal - 1);
+      if (playerTimerVal === 0) clearInterval(playerTimerInterval);
+      updatePlayerTimerUI();
+    }, 1000);
+    // Load image, swap spinner → canvas when ready
+    if (data.imageUrl && playerObjectImage) {
+      playerObjectImage.src = data.imageUrl;
+      playerObjectImage.onload = () => {
+        if (playerObject3d)     playerObject3d.style.display = 'none';
+        if (playerObjectCanvas) { playerObjectCanvas.style.display = 'block'; drawPlayerPixelatedImage(); }
+      };
+    }
 
     showState('guessing');
   });
@@ -210,6 +290,15 @@ function initSocket(url) {
   });
 
   socket.on('roundReveal', (data) => {
+    // Show full-quality image on reveal
+    if (playerTimerInterval) clearInterval(playerTimerInterval);
+    playerTimerVal = 0;
+    updatePlayerTimerUI();
+    if (playerObjectImage && playerObjectImage.complete && playerObjectImage.naturalWidth > 0) {
+      if (playerObject3d)     playerObject3d.style.display = 'none';
+      if (playerObjectCanvas) { playerObjectCanvas.style.display = 'block'; drawPlayerPixelatedImage(); }
+    }
+
     revealRoundTitle.textContent = `Round ${currentRound} Reveal`;
     revealCorrectName.textContent = `Target object was: ${data.objectName.toUpperCase()}`;
     
