@@ -40,7 +40,30 @@ function fetchUrlWithRedirects(url, res, maxRedirects = 5) {
     return;
   }
   const client = url.startsWith('https') ? https : http;
-  const proxyReq = client.get(url, (proxyRes) => {
+  
+  let parsedUrl;
+  try {
+    parsedUrl = new URL(url);
+  } catch (err) {
+    console.error('Invalid URL during proxy fetch:', url);
+    if (!res.headersSent) res.status(400).send('Invalid target URL');
+    return;
+  }
+
+  const options = {
+    hostname: parsedUrl.hostname,
+    port: parsedUrl.port || (parsedUrl.protocol === 'https:' ? 443 : 80),
+    path: parsedUrl.pathname + parsedUrl.search,
+    method: 'GET',
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+      'Accept-Language': 'en-US,en;q=0.9',
+      'Referer': parsedUrl.origin
+    }
+  };
+
+  const proxyReq = client.get(options, (proxyRes) => {
     if ([301, 302, 303, 307, 308].includes(proxyRes.statusCode)) {
       const location = proxyRes.headers.location;
       if (!location) { if (!res.headersSent) res.status(500).send('Redirect missing location'); return; }
@@ -53,16 +76,32 @@ function fetchUrlWithRedirects(url, res, maxRedirects = 5) {
     res.setHeader('Access-Control-Allow-Origin', '*');
     proxyRes.pipe(res);
   });
+  
   proxyReq.on('error', (err) => {
-    console.error('Proxy fetch error:', err.message);
+    console.error('Proxy fetch error for URL:', url, 'Error:', err.message);
     if (!res.headersSent) res.status(502).send('Upstream error');
   });
 }
 
 app.get('/api/proxy-image', (req, res) => {
   const { url } = req.query;
-  if (!url || !url.startsWith('http')) return res.status(400).send('Invalid or missing url param');
-  fetchUrlWithRedirects(url, res);
+  if (!url) return res.status(400).send('Missing url param');
+  
+  let targetUrl = url;
+  // If the parameter is base64 encoded, decode it
+  if (!url.startsWith('http')) {
+    try {
+      targetUrl = Buffer.from(url, 'base64').toString('utf8');
+    } catch (e) {
+      return res.status(400).send('Invalid base64 encoding');
+    }
+  }
+  
+  if (!targetUrl.startsWith('http')) {
+    return res.status(400).send('Invalid target url');
+  }
+  
+  fetchUrlWithRedirects(targetUrl, res);
 });
 
 // In-memory store for AI-generated images (base64 from gpt-image-1)
@@ -179,6 +218,116 @@ const FALLBACK_OBJECTS = [
     word: "diamond",
     description: "It's the hardest shiny thing on earth and very expensive!",
     imageUrl: "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=400&q=80"
+  },
+  {
+    word: "sunflower",
+    description: "It's a giant yellow flower that always turns its face to follow the sun!",
+    imageUrl: "https://images.unsplash.com/photo-1597848212624-a19eb35e2651?w=400&q=80"
+  },
+  {
+    word: "hamburger",
+    description: "It has a juicy patty inside a soft bun, often with cheese and lettuce!",
+    imageUrl: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&q=80"
+  },
+  {
+    word: "bicycle",
+    description: "You pedal with your feet to spin two wheels and balance as you ride!",
+    imageUrl: "https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=400&q=80"
+  },
+  {
+    word: "hot air balloon",
+    description: "A giant colorful bag filled with hot air that floats slowly in the sky!",
+    imageUrl: "https://images.unsplash.com/photo-1531266752426-aad472b7bbf4?w=400&q=80"
+  },
+  {
+    word: "umbrella",
+    description: "You pop it open over your head to stay dry when water falls from the clouds!",
+    imageUrl: "https://loremflickr.com/400/400/umbrella?lock=1"
+  },
+  {
+    word: "strawberry",
+    description: "It's a small red fruit with tiny seeds on the outside and a green leafy top!",
+    imageUrl: "https://loremflickr.com/400/400/strawberry?lock=1"
+  },
+  {
+    word: "violin",
+    description: "A wooden instrument you rest on your shoulder and play with a bow!",
+    imageUrl: "https://loremflickr.com/400/400/violin?lock=1"
+  },
+  {
+    word: "butterfly",
+    description: "It starts as a caterpillar and grows beautiful wings that flutter around flowers!",
+    imageUrl: "https://loremflickr.com/400/400/butterfly?lock=1"
+  },
+  {
+    word: "sunglasses",
+    description: "You wear them over your eyes to shade them when it's super bright outside!",
+    imageUrl: "https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=400&q=80"
+  },
+  {
+    word: "lighthouse",
+    description: "A tall tower near the ocean that shines a bright light to guide ships!",
+    imageUrl: "https://loremflickr.com/400/400/lighthouse?lock=1"
+  },
+  {
+    word: "teddy bear",
+    description: "A soft, cuddly stuffed toy that kids love to hug when going to sleep!",
+    imageUrl: "https://loremflickr.com/400/400/teddybear?lock=1"
+  },
+  {
+    word: "ice cream",
+    description: "A frozen sweet treat in a scoop that melts quickly on a hot day!",
+    imageUrl: "https://loremflickr.com/400/400/icecream?lock=1"
+  },
+  {
+    word: "basketball",
+    description: "A bouncy orange ball that players dribble and shoot through a metal hoop!",
+    imageUrl: "https://images.unsplash.com/photo-1546519638-68e109498ffc?w=400&q=80"
+  },
+  {
+    word: "telescope",
+    description: "A long tube with glass lenses that helps you see distant stars and planets!",
+    imageUrl: "https://loremflickr.com/400/400/telescope?lock=1"
+  },
+  {
+    word: "hourglass",
+    description: "A glass timer where sand slowly trickles down from the top to the bottom!",
+    imageUrl: "https://loremflickr.com/400/400/hourglass?lock=1"
+  },
+  {
+    word: "teapot",
+    description: "It has a handle and a spout, and whistles when the water inside gets boiling hot!",
+    imageUrl: "https://loremflickr.com/400/400/teapot?lock=1"
+  },
+  {
+    word: "anchor",
+    description: "A heavy metal hook dropped from a ship to keep it from drifting away!",
+    imageUrl: "https://loremflickr.com/400/400/anchor?lock=1"
+  },
+  {
+    word: "globe",
+    description: "A round, rotating model of our planet showing all the oceans and countries!",
+    imageUrl: "https://loremflickr.com/400/400/globe?lock=1"
+  },
+  {
+    word: "helicopter",
+    description: "It has giant spinning blades on top that lift it straight up into the air!",
+    imageUrl: "https://loremflickr.com/400/400/helicopter?lock=1"
+  },
+  {
+    word: "skateboard",
+    description: "A wooden board on four small wheels that you push with one foot to glide!",
+    imageUrl: "https://loremflickr.com/400/400/skateboard?lock=1"
+  },
+  {
+    word: "alarm clock",
+    description: "It sits by your bed and makes a loud ringing noise to wake you up!",
+    imageUrl: "https://loremflickr.com/400/400/alarmclock?lock=1"
+  },
+  {
+    word: "tent",
+    description: "A portable shelter made of fabric that you set up when camping in the woods!",
+    imageUrl: "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=400&q=80"
   }
 ];
 
@@ -713,35 +862,69 @@ async function startNewRound(room) {
     countdown: 5
   });
 
-  // ── Get next object — pre-fetched or generate fresh ───────────────────────
-  let nextObject;
-  if (room.prefetchedObject && room.prefetchedObject.imageUrl) {
-    // Word + image both ready — just honour the 5-second countdown
-    nextObject = room.prefetchedObject;
-    room.prefetchedObject = null;
-    console.log(`Round ${room.currentRound}: pre-fetched "${nextObject.word}" (image ready) — waiting countdown...`);
-    await new Promise(resolve => setTimeout(resolve, 5000));
-  } else if (room.prefetchedObject && !room.prefetchedObject.imageUrl) {
-    // Word pre-fetched but image generation failed — retry image, wait at least 5 seconds
-    nextObject = room.prefetchedObject;
-    room.prefetchedObject = null;
-    console.log(`Round ${room.currentRound}: pre-fetched word "${nextObject.word}" but image failed — regenerating image...`);
-    const [aiUrl] = await Promise.all([
-      generateAndStoreImage(nextObject.word),
-      new Promise(resolve => setTimeout(resolve, 5000))
-    ]);
-    if (aiUrl) nextObject.imageUrl = aiUrl;
-    console.log(`Round ${room.currentRound}: ready — "${nextObject.word}" image: ${nextObject.imageUrl ? 'AI (retry)' : 'fallback'}`);
+  console.log(`Round ${room.currentRound}: starting preparation. Preparing word and image...`);
+  const startTime = Date.now();
+  let nextObject = null;
+
+  // Helper: get a fallback object that has not been used yet
+  function getFallbackObject() {
+    const available = FALLBACK_OBJECTS.filter(o => !room.usedWords.includes(o.word));
+    const pool = available.length > 0 ? available : FALLBACK_OBJECTS;
+    const picked = pool[Math.floor(Math.random() * pool.length)];
+    return { ...picked };
+  }
+
+  // Try to obtain the object (either prefetched or freshly generated) within 4.8 seconds
+  try {
+    const getObjectPromise = (async () => {
+      if (room.prefetchedObject && room.prefetchedObject.imageUrl) {
+        console.log(`Round ${room.currentRound}: using pre-fetched object "${room.prefetchedObject.word}" (image ready)`);
+        return room.prefetchedObject;
+      } else if (room.prefetchedObject && !room.prefetchedObject.imageUrl) {
+        const obj = room.prefetchedObject;
+        console.log(`Round ${room.currentRound}: word "${obj.word}" pre-fetched, generating image...`);
+        const aiUrl = await generateAndStoreImage(obj.word);
+        if (aiUrl) {
+          obj.imageUrl = aiUrl;
+          return obj;
+        }
+        return null; // fallback
+      } else {
+        console.log(`Round ${room.currentRound}: no pre-fetched object, generating fresh...`);
+        const obj = await generateWordObject(room.usedWords);
+        const aiUrl = await generateAndStoreImage(obj.word);
+        if (aiUrl) {
+          obj.imageUrl = aiUrl;
+          return obj;
+        }
+        return null; // fallback
+      }
+    })();
+
+    // Timeout promise: resolves with null after 4.8 seconds
+    const timeoutPromise = new Promise(resolve => setTimeout(() => resolve(null), 4800));
+
+    // Race the generation against the 4.8s timeout
+    nextObject = await Promise.race([getObjectPromise, timeoutPromise]);
+  } catch (err) {
+    console.error("Error during round preparation:", err);
+  }
+
+  // Clear prefetched since we consumed it or fell back
+  room.prefetchedObject = null;
+
+  if (!nextObject || !nextObject.imageUrl) {
+    console.log(`Round ${room.currentRound}: AI generation timed out or failed. Falling back to preset object.`);
+    nextObject = getFallbackObject();
   } else {
-    // No pre-fetch — generate word + AI image, wait at least 5 seconds
-    console.log(`Round ${room.currentRound}: generating word + image...`);
-    nextObject = await generateWordObject(room.usedWords);
-    const [aiUrl] = await Promise.all([
-      generateAndStoreImage(nextObject.word),
-      new Promise(resolve => setTimeout(resolve, 5000))
-    ]);
-    if (aiUrl) nextObject.imageUrl = aiUrl;
-    console.log(`Round ${room.currentRound}: ready — "${nextObject.word}" image: ${nextObject.imageUrl ? 'AI' : 'fallback'}`);
+    console.log(`Round ${room.currentRound}: successfully prepared AI object "${nextObject.word}"`);
+  }
+
+  // Ensure we wait out the full 5 seconds countdown so client is ready
+  const elapsed = Date.now() - startTime;
+  const remainingWait = Math.max(0, 5000 - elapsed);
+  if (remainingWait > 0) {
+    await new Promise(resolve => setTimeout(resolve, remainingWait));
   }
 
   room.targetObject = nextObject;
@@ -751,12 +934,10 @@ async function startNewRound(room) {
   let initialImageUrl;
   if (nextObject.imageUrl && nextObject.imageUrl.startsWith('/')) {
     initialImageUrl = nextObject.imageUrl;  // local AI image — no proxy needed
-  } else if (nextObject.imageUrl && nextObject.imageUrl.startsWith('http')) {
-    initialImageUrl = `/api/proxy-image?url=${encodeURIComponent(nextObject.imageUrl)}`;
   } else {
-    initialImageUrl = `/api/proxy-image?url=${encodeURIComponent(
-      `https://loremflickr.com/400/400/${encodeURIComponent(nextObject.word)}?lock=${Date.now()}`
-    )}`;
+    const rawUrl = nextObject.imageUrl || `https://loremflickr.com/400/400/${encodeURIComponent(nextObject.word)}?lock=${Date.now()}`;
+    const base64Url = Buffer.from(rawUrl).toString('base64');
+    initialImageUrl = `/api/proxy-image?url=${base64Url}`;
   }
 
   // ── Broadcast startRound ──────────────────────────────────────────────────
@@ -796,6 +977,7 @@ async function startNewRound(room) {
     })();
   }
 }
+
 
 // Helper: Reveal Round
 function revealRound(room) {
