@@ -488,6 +488,23 @@ body.demo-view {
   color: var(--ink-soft);
 }
 
+/* Player Mini Stage (mirrors host stage-wrap, slightly smaller) */
+.player-mini-stage {
+  position: relative;
+  margin: 10px auto 0;
+  width: 210px;
+  height: 210px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Scale down the stage-glass inside the player mini stage */
+.player-mini-stage .stage-glass {
+  width: 164px;
+  height: 164px;
+}
+
 /* Guessing View */
 .guess-input-card {
   margin: 22px 24px 0;
@@ -893,10 +910,10 @@ body.demo-view {
 /* Guess Lane & Floating Bubbles */
 .guess-lane {
   position: relative;
-  z-index: 5;
+  z-index: 2;
   height: 190px;
   margin: 6px 14px 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .bubble {
@@ -951,21 +968,21 @@ body.demo-view {
 
 @keyframes floatup {
   0% {
-    bottom: -40px;
+    bottom: -60px;
     opacity: 0;
     transform: scale(0.85);
   }
-  15% {
+  12% {
     opacity: 1;
     transform: scale(1);
   }
-  85% {
+  70% {
     opacity: 1;
   }
   100% {
-    bottom: 200px;
+    bottom: 580px;
     opacity: 0;
-    transform: scale(0.92);
+    transform: scale(0.9);
   }
 }
 
