@@ -40,7 +40,7 @@ function fetchUrlWithRedirects(url, res, maxRedirects = 5) {
     return;
   }
   const client = url.startsWith('https') ? https : http;
-  
+
   let parsedUrl;
   try {
     parsedUrl = new URL(url);
@@ -76,7 +76,7 @@ function fetchUrlWithRedirects(url, res, maxRedirects = 5) {
     res.setHeader('Access-Control-Allow-Origin', '*');
     proxyRes.pipe(res);
   });
-  
+
   proxyReq.on('error', (err) => {
     console.error('Proxy fetch error for URL:', url, 'Error:', err.message);
     if (!res.headersSent) res.status(502).send('Upstream error');
@@ -86,7 +86,7 @@ function fetchUrlWithRedirects(url, res, maxRedirects = 5) {
 app.get('/api/proxy-image', (req, res) => {
   const { url } = req.query;
   if (!url) return res.status(400).send('Missing url param');
-  
+
   let targetUrl = url;
   // If the parameter is base64 encoded, decode it
   if (!url.startsWith('http')) {
@@ -96,11 +96,11 @@ app.get('/api/proxy-image', (req, res) => {
       return res.status(400).send('Invalid base64 encoding');
     }
   }
-  
+
   if (!targetUrl.startsWith('http')) {
     return res.status(400).send('Invalid target url');
   }
-  
+
   fetchUrlWithRedirects(targetUrl, res);
 });
 
@@ -205,11 +205,6 @@ const FALLBACK_OBJECTS = [
     imageUrl: "https://images.unsplash.com/photo-1550258987-190a2d41a8ba?w=400&q=80"
   },
   {
-    word: "laptop",
-    description: "You fold it open, type on it, and use it to browse the internet!",
-    imageUrl: "https://images.unsplash.com/photo-1496181130204-7552cc14ac1a?w=400&q=80"
-  },
-  {
     word: "pizza",
     description: "It's a round flat thing with cheese on top that everyone loves at parties!",
     imageUrl: "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400&q=80"
@@ -234,26 +229,9 @@ const FALLBACK_OBJECTS = [
     description: "You pedal with your feet to spin two wheels and balance as you ride!",
     imageUrl: "https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=400&q=80"
   },
-  {
-    word: "hot air balloon",
-    description: "A giant colorful bag filled with hot air that floats slowly in the sky!",
-    imageUrl: "https://images.unsplash.com/photo-1531266752426-aad472b7bbf4?w=400&q=80"
-  },
-  {
-    word: "umbrella",
-    description: "You pop it open over your head to stay dry when water falls from the clouds!",
-    imageUrl: "https://loremflickr.com/400/400/umbrella?lock=1"
-  },
-  {
-    word: "strawberry",
-    description: "It's a small red fruit with tiny seeds on the outside and a green leafy top!",
-    imageUrl: "https://loremflickr.com/400/400/strawberry?lock=1"
-  },
-  {
-    word: "violin",
-    description: "A wooden instrument you rest on your shoulder and play with a bow!",
-    imageUrl: "https://loremflickr.com/400/400/violin?lock=1"
-  },
+
+
+
   {
     word: "butterfly",
     description: "It starts as a caterpillar and grows beautiful wings that flutter around flowers!",
@@ -264,66 +242,29 @@ const FALLBACK_OBJECTS = [
     description: "You wear them over your eyes to shade them when it's super bright outside!",
     imageUrl: "https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=400&q=80"
   },
-  {
-    word: "lighthouse",
-    description: "A tall tower near the ocean that shines a bright light to guide ships!",
-    imageUrl: "https://loremflickr.com/400/400/lighthouse?lock=1"
-  },
-  {
-    word: "teddy bear",
-    description: "A soft, cuddly stuffed toy that kids love to hug when going to sleep!",
-    imageUrl: "https://loremflickr.com/400/400/teddybear?lock=1"
-  },
-  {
-    word: "ice cream",
-    description: "A frozen sweet treat in a scoop that melts quickly on a hot day!",
-    imageUrl: "https://loremflickr.com/400/400/icecream?lock=1"
-  },
+
   {
     word: "basketball",
     description: "A bouncy orange ball that players dribble and shoot through a metal hoop!",
     imageUrl: "https://images.unsplash.com/photo-1546519638-68e109498ffc?w=400&q=80"
   },
   {
-    word: "telescope",
-    description: "A long tube with glass lenses that helps you see distant stars and planets!",
-    imageUrl: "https://loremflickr.com/400/400/telescope?lock=1"
-  },
-  {
     word: "hourglass",
     description: "A glass timer where sand slowly trickles down from the top to the bottom!",
     imageUrl: "https://loremflickr.com/400/400/hourglass?lock=1"
   },
-  {
-    word: "teapot",
-    description: "It has a handle and a spout, and whistles when the water inside gets boiling hot!",
-    imageUrl: "https://loremflickr.com/400/400/teapot?lock=1"
-  },
-  {
-    word: "anchor",
-    description: "A heavy metal hook dropped from a ship to keep it from drifting away!",
-    imageUrl: "https://loremflickr.com/400/400/anchor?lock=1"
-  },
+
   {
     word: "globe",
     description: "A round, rotating model of our planet showing all the oceans and countries!",
-    imageUrl: "https://loremflickr.com/400/400/globe?lock=1"
+    imageUrl: "https://images.unsplash.com/photo-1531266752426-aad472b7bbf4?w=400&q=80"
   },
   {
     word: "helicopter",
     description: "It has giant spinning blades on top that lift it straight up into the air!",
     imageUrl: "https://loremflickr.com/400/400/helicopter?lock=1"
   },
-  {
-    word: "skateboard",
-    description: "A wooden board on four small wheels that you push with one foot to glide!",
-    imageUrl: "https://loremflickr.com/400/400/skateboard?lock=1"
-  },
-  {
-    word: "alarm clock",
-    description: "It sits by your bed and makes a loud ringing noise to wake you up!",
-    imageUrl: "https://loremflickr.com/400/400/alarmclock?lock=1"
-  },
+
   {
     word: "tent",
     description: "A portable shelter made of fabric that you set up when camping in the woods!",
@@ -354,8 +295,8 @@ function levenshteinDistance(s, t) {
   }
   for (let i = 1; i <= t.length; i++) {
     for (let j = 1; j <= s.length; j++) {
-      arr[i][j] = t[i - 1] === s[j - 1] 
-        ? arr[i - 1][j - 1] 
+      arr[i][j] = t[i - 1] === s[j - 1]
+        ? arr[i - 1][j - 1]
         : Math.min(arr[i - 1][j - 1] + 1, arr[i][j - 1] + 1, arr[i - 1][j] + 1);
     }
   }
@@ -366,32 +307,32 @@ function levenshteinDistance(s, t) {
 function gradeGuessLocally(targetWord, playerGuess) {
   const t = cleanWord(targetWord);
   const g = cleanWord(playerGuess);
-  
+
   if (t === g) return 100;
-  
+
   // Exact substring checks
   if (t.includes(g) || g.includes(t)) {
     const ratio = Math.min(t.length, g.length) / Math.max(t.length, g.length);
     // Score based on how close the substring length is (between 50% and 90%)
     return Math.floor(50 + ratio * 40);
   }
-  
+
   // Spell mistake tolerance (Levenshtein distance)
   const distance = levenshteinDistance(t, g);
   const maxLen = Math.max(t.length, g.length);
   const similarity = (maxLen - distance) / maxLen;
-  
+
   if (similarity > 0.7) {
     return Math.floor(similarity * 100);
   }
-  
+
   return 0;
 }
 
 // AI Smart Guess Grader
 async function gradeGuessAI(targetWord, playerGuess) {
   if (!openai) return gradeGuessLocally(targetWord, playerGuess);
-  
+
   try {
     const prompt = `The target object is '${targetWord}'. The player guessed '${playerGuess}'. Grade this guess on a scale of 0 to 100 based on semantic similarity.
     Rules:
@@ -407,7 +348,7 @@ async function gradeGuessAI(targetWord, playerGuess) {
       temperature: 0.1,
       max_tokens: 5
     });
-    
+
     const scoreText = response.choices[0].message.content.trim();
     const score = parseInt(scoreText);
     return isNaN(score) ? gradeGuessLocally(targetWord, playerGuess) : Math.min(100, Math.max(0, score));
@@ -438,7 +379,7 @@ async function getNextRoundObject(usedWords = []) {
       });
 
       const data = JSON.parse(response.choices[0].message.content.trim());
-      
+
       // Generate image — try gpt-image-1 (returns base64), fall back to Loremflickr
       let imageUrl = `https://loremflickr.com/400/400/${encodeURIComponent(data.word)}?lock=${Date.now()}`;
       try {
@@ -487,17 +428,17 @@ async function getNextRoundObject(usedWords = []) {
 // Socket Connection handling
 io.on('connection', (socket) => {
   console.log(`Socket connected: ${socket.id}`);
-  
+
   // HOST: Create Room
   socket.on('createRoom', async () => {
     let roomCode = '';
     do {
       roomCode = Math.random().toString(36).substring(2, 6).toUpperCase();
     } while (rooms[roomCode]);
-    
+
     // Define join URL with host LAN IP
     const joinUrl = `http://${LOCAL_IP}:${PORT}/?room=${roomCode}`;
-    
+
     // Generate QR Code data URL using node qrcode
     let qrCodeDataUrl = '';
     try {
@@ -505,7 +446,7 @@ io.on('connection', (socket) => {
     } catch (err) {
       console.error('Failed to generate QR Code:', err);
     }
-    
+
     rooms[roomCode] = {
       roomCode,
       hostSocketId: socket.id,
@@ -517,9 +458,9 @@ io.on('connection', (socket) => {
       usedWords: [],
       targetObject: null
     };
-    
+
     socket.join(roomCode);
-    
+
     socket.emit('roomCreated', {
       roomCode,
       joinUrl,
@@ -527,30 +468,30 @@ io.on('connection', (socket) => {
     });
     console.log(`Room created: ${roomCode}`);
   });
-  
+
   // PLAYER: Join Room
   socket.on('joinRoom', (data) => {
     const code = data.roomCode.toUpperCase();
     const name = data.playerName.trim();
     const avatar = data.avatar;
-    
+
     const room = rooms[code];
     if (!room) {
       socket.emit('error', 'Room not found. Make sure the code is correct!');
       return;
     }
-    
+
     if (room.state !== 'LOBBY') {
       socket.emit('error', 'Game has already started in this room!');
       return;
     }
-    
+
     // Prevent duplicate name in same room
     if (room.players.some(p => p.name.toLowerCase() === name.toLowerCase())) {
       socket.emit('error', 'Name already taken in this room. Please choose another!');
       return;
     }
-    
+
     const newPlayer = {
       id: socket.id,
       name,
@@ -560,27 +501,27 @@ io.on('connection', (socket) => {
       lastRoundScore: 0,
       guesses: []
     };
-    
+
     room.players.push(newPlayer);
     socket.join(code);
-    
+
     socket.emit('roomJoined', {
       roomCode: code,
       playerName: name,
       avatar
     });
-    
+
     // Notify the host screen of player list updates
     io.to(room.hostSocketId).emit('playerJoined', room.players.map(p => ({
       name: p.name,
       avatar: p.avatar
     })));
-    
+
     console.log(`Player ${name} (${avatar}) joined room ${code}`);
   });
-  
-  
-  
+
+
+
   // HOST: Start Game
   socket.on('startGame', () => {
     // Find room hosted by this socket
@@ -591,25 +532,25 @@ io.on('connection', (socket) => {
         break;
       }
     }
-    
+
     if (room && room.state === 'LOBBY' && room.players.length > 0) {
       room.state = 'ACTIVE';
       io.to(room.roomCode).emit('gameStarted');
       console.log(`Game started in room: ${room.roomCode}`);
-      
+
       // Auto trigger first round
       startNewRound(room);
     }
   });
-  
+
   // PLAYER: Submit Guess
   socket.on('submitGuess', async (data) => {
     const guess = data.guess.trim();
     if (!guess) return;
-    
+
     let room = null;
     let player = null;
-    
+
     for (const code of Object.keys(rooms)) {
       const p = rooms[code].players.find(pl => pl.id === socket.id);
       if (p) {
@@ -618,37 +559,37 @@ io.on('connection', (socket) => {
         break;
       }
     }
-    
+
     if (room && player && room.state === 'GUESSING') {
       // If player already guessed correctly, reject further entries
       if (player.guessedCorrectly) {
         return;
       }
-      
+
       console.log(`Player ${player.name} guessed: "${guess}" in Room ${room.roomCode}`);
-      
+
       // 2. Grade guess
       const targetWord = room.targetObject.word;
       const score = await gradeGuessAI(targetWord, guess);
-      
+
       // Save this guess
       player.guesses.push({ guess, score });
-      
+
       if (score === 100) {
         // Correct Guess! Calculate time bonus score (between 80 and 100)
         player.guessedCorrectly = true;
         const timeLeft = room.timeLeft !== undefined ? room.timeLeft : 15;
         const duration = room.roundDuration || 30;
-        
+
         // Linear interpolation from 80 (0s left) to 100 (full time left)
         const finalScore = 80 + Math.floor((timeLeft / duration) * 20);
         player.lastRoundScore = finalScore;
-        
+
         console.log(`Player ${player.name} guessed CORRECTLY! Earned ${finalScore}% (Time left: ${timeLeft}s)`);
-        
+
         // Notify player immediately
         socket.emit('guessResult', { correct: true, score: finalScore, guess: guess });
-        
+
         // Notify host screen to float a special correct guess bubble
         io.to(room.hostSocketId).emit('playerCorrect', {
           playerName: player.name,
@@ -656,11 +597,11 @@ io.on('connection', (socket) => {
           score: finalScore,
           guess: guess
         });
-        
+
         // Update leaderboard on Host screen immediately
         const sortedPlayers = [...room.players].sort((a, b) => b.score - a.score);
         io.to(room.hostSocketId).emit('updateLeaderboard', sortedPlayers);
-        
+
         // Check if ALL active players have guessed correctly
         if (room.players.every(p => p.guessedCorrectly)) {
           console.log(`All players guessed correctly! Ending round early.`);
@@ -675,12 +616,12 @@ io.on('connection', (socket) => {
         if (partialScore > player.lastRoundScore) {
           player.lastRoundScore = partialScore;
         }
-        
+
         console.log(`Graded partial guess "${guess}" for ${player.name}: ${partialScore}% (raw score: ${score})`);
-        
+
         // Notify player of score
         socket.emit('guessResult', { correct: false, score: partialScore, guess: guess });
-        
+
         // Float guess on host screen
         io.to(room.hostSocketId).emit('newGuess', {
           playerName: player.name,
@@ -690,7 +631,7 @@ io.on('connection', (socket) => {
       }
     }
   });
-  
+
   // HOST: Next Round / Show Leaderboard
   socket.on('nextRound', () => {
     let room = null;
@@ -700,7 +641,7 @@ io.on('connection', (socket) => {
         break;
       }
     }
-    
+
     if (room) {
       if (room.state === 'REVEAL') {
         if (room.currentRound < room.totalRounds) {
@@ -714,7 +655,7 @@ io.on('connection', (socket) => {
       }
     }
   });
-  
+
   // HOST: Restart Game
   socket.on('restartGame', () => {
     let room = null;
@@ -724,22 +665,22 @@ io.on('connection', (socket) => {
         break;
       }
     }
-    
+
     if (room) {
       console.log(`Host requested restart for Room: ${room.roomCode}`);
-      
+
       // Clear active timers
       if (room.timerInterval) {
         clearInterval(room.timerInterval);
       }
-      
+
       // Reset room metadata
       room.state = 'LOBBY';
       room.currentRound = 0;
       room.usedWords = [];
       room.targetObject = null;
       room.prefetchedObject = null;
-      
+
       // Reset players scores and state flags
       room.players.forEach(p => {
         p.score = 0;
@@ -747,17 +688,17 @@ io.on('connection', (socket) => {
         p.guesses = [];
         p.guessedCorrectly = false;
       });
-      
+
       // Broadcast restart to all participants
       io.to(room.roomCode).emit('gameRestarted', room.players);
       console.log(`Game restarted in Room ${room.roomCode}. All players reset.`);
     }
   });
-  
+
   // Disconnect handler
   socket.on('disconnect', () => {
     console.log(`Socket disconnected: ${socket.id}`);
-    
+
     // Check if player disconnected
     for (const code of Object.keys(rooms)) {
       const room = rooms[code];
@@ -766,7 +707,7 @@ io.on('connection', (socket) => {
         const p = room.players[pIdx];
         room.players.splice(pIdx, 1);
         console.log(`Player ${p.name} disconnected from room ${code}`);
-        
+
         // Notify host
         io.to(room.hostSocketId).emit('playerJoined', room.players.map(pl => ({
           name: pl.name,
@@ -774,7 +715,7 @@ io.on('connection', (socket) => {
         })));
         break;
       }
-      
+
       // Check if host disconnected
       if (room.hostSocketId === socket.id) {
         console.log(`Host disconnected from room ${code}. Room destroyed.`);
@@ -983,19 +924,19 @@ async function startNewRound(room) {
 function revealRound(room) {
   if (room.state !== 'GUESSING') return;
   room.state = 'REVEAL';
-  
+
   // Clear any active countdown timers
   if (room.timerInterval) {
     clearInterval(room.timerInterval);
   }
-  
+
   // 1. Calculate overall score updates
   // Cumulative score updates: average of all round scores
   room.players.forEach(p => {
     // Cumulative score = (previous overall * (round - 1) + lastRoundScore) / round
     p.score = ((p.score * (room.currentRound - 1)) + p.lastRoundScore) / room.currentRound;
   });
-  
+
   // 2. Broadcast reveal event
   io.to(room.roomCode).emit('roundReveal', {
     objectName: room.targetObject.word,
@@ -1008,18 +949,18 @@ function revealRound(room) {
       lastRoundScore: p.lastRoundScore
     }))
   });
-  
+
   // 3. Broadcast updated leaderboard
   const sortedPlayers = [...room.players].sort((a, b) => b.score - a.score);
   io.to(room.hostSocketId).emit('updateLeaderboard', sortedPlayers);
-  
+
   console.log(`Revealed round ${room.currentRound} in room ${room.roomCode}. Object: ${room.targetObject.word}`);
 }
 
 // Start Server
 server.listen(PORT, () => {
   console.log(`========================================`);
-  console.log(`Guess the Object Game Server started!`);
+  console.log(`PixelQuest AI Game Server started!`);
   console.log(`Local Access: http://localhost:${PORT}`);
   console.log(`Network LAN Access: http://${LOCAL_IP}:${PORT}`);
   console.log(`Demo/Split View: http://${LOCAL_IP}:${PORT}/demo.html`);

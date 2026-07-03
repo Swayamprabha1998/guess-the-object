@@ -481,6 +481,7 @@ nextRoundBtn.addEventListener('click', () => {
 
 // Game Over View
 socket.on('gameOver', (data) => {
+  revealOverlay.style.display = 'none';
   showState('gameover');
   roundPill.textContent = 'Results';
   
@@ -502,26 +503,26 @@ socket.on('gameOver', (data) => {
     podium3rd.style.visibility = 'hidden';
   }
 
-  // 2. Resolve Awards based on Rules (Podium vouchers)
-  // - 1st Place Overall: ₹2,000 Voucher
-  // - 2nd Place Overall: ₹500 Voucher
-  // - 3rd Place Overall: ₹500 Voucher
+  // 2. Resolve Awards based on Rules (Simple Medals)
+  // - 1st Place Overall: 🥇 Winner
+  // - 2nd Place Overall: 🥈 Runner-up
+  // - 3rd Place Overall: 🥉 3rd Place
   
   // Render Results Table
   awardsTableBody.innerHTML = '';
   
   sorted.forEach((p, idx) => {
-    let awardBadge = '-';
+    let awardBadge = 'Participant';
     let isWinnerRow = false;
     
     if (idx === 0) {
-      awardBadge = '🏆 ₹2,000 (1st Place)';
+      awardBadge = '🥇 Winner';
       isWinnerRow = true;
     } else if (idx === 1) {
-      awardBadge = '🥈 ₹500 (2nd Place)';
+      awardBadge = '🥈 Runner-up';
       isWinnerRow = true;
     } else if (idx === 2) {
-      awardBadge = '🥉 ₹500 (3rd Place)';
+      awardBadge = '🥉 3rd Place';
       isWinnerRow = true;
     }
     
