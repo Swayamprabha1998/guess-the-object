@@ -7,6 +7,7 @@ let predictedScore = 50;
 let currentScore = 0;
 let currentRound = 0;
 
+
 // Elements
 const states = {
   connect: document.getElementById('state-connect'),
@@ -60,76 +61,6 @@ const finalRankVal = document.getElementById('final-rank-val');
 let qrStream = null;
 let scanning = false;
 
-// Player stage elements
-const playerObjectImage = document.getElementById('player-object-image');
-const playerObjectCanvas = document.getElementById('player-object-canvas');
-const playerStageWrap = document.getElementById('player-stage-wrap');
-const playerTimerRing = document.getElementById('player-timer-ring');
-const playerTimerTextEl = document.getElementById('player-timer-text');
-const playerObject3d = document.getElementById('player-object-3d');
-
-// Player image pixelation state
-let playerTimerVal = 30;
-let playerTimerMax = 30;
-let playerTimerInterval = null;
-
-function updatePlayerTimerUI() {
-  // Update timer text
-  const min = Math.floor(playerTimerVal / 60);
-  const sec = playerTimerVal % 60;
-  if (playerTimerTextEl) {
-    playerTimerTextEl.textContent = `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
-  }
-
-  // Update conic ring (same logic as host)
-  if (playerTimerRing) {
-    const progressRatio = playerTimerVal / playerTimerMax;
-    const deg = progressRatio * 360;
-    if (playerTimerVal > 0) {
-      playerTimerRing.style.background = `conic-gradient(var(--coral) 0deg, var(--yellow) ${deg}deg, rgba(124, 92, 252, 0.12) ${deg}deg 360deg)`;
-    } else {
-      playerTimerRing.style.background = `rgba(124, 92, 252, 0.12)`;
-    }
-  }
-
-  drawPlayerPixelatedImage();
-}
-
-function drawPlayerPixelatedImage() {
-  if (!playerObjectImage || !playerObjectCanvas) return;
-  if (!playerObjectImage.complete || playerObjectImage.naturalWidth === 0) return;
-
-  const canvas = playerObjectCanvas;
-  const img = playerObjectImage;
-  const ctx = canvas.getContext('2d');
-
-  // Full-quality reveal (same as host)
-  if (playerTimerVal === 0) {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.imageSmoothingEnabled = true;
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    return;
-  }
-
-  // Quadratic pixelation ease (same as host)
-  const elapsedRatio = (playerTimerMax - playerTimerVal) / playerTimerMax;
-  const minRes = 6;
-  const maxRes = 150;
-  const currentRes = Math.max(1, Math.floor(minRes + (maxRes - minRes) * Math.pow(elapsedRatio, 2)));
-
-  const tempCanvas = document.createElement('canvas');
-  tempCanvas.width = currentRes;
-  tempCanvas.height = currentRes;
-  const tempCtx = tempCanvas.getContext('2d');
-  tempCtx.imageSmoothingEnabled = false;
-  tempCtx.drawImage(img, 0, 0, currentRes, currentRes);
-
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.imageSmoothingEnabled = false;
-  ctx.mozImageSmoothingEnabled = false;
-  ctx.webkitImageSmoothingEnabled = false;
-  ctx.drawImage(tempCanvas, 0, 0, currentRes, currentRes, 0, 0, canvas.width, canvas.height);
-}
 
 // Initialize View Setup
 function showState(stateName) {
@@ -170,7 +101,10 @@ function initSocket(url) {
   }
 
   socket = io(url, {
-    transports: ['websocket', 'polling']
+    transports: ['websocket'],   // skip HTTP polling — ngrok handles WS fine
+    upgrade: false,
+    reconnectionDelay: 500,
+    reconnectionAttempts: 10
   });
 
   serverDisplay.textContent = url.replace(/^https?:\/\//, '');
@@ -241,39 +175,6 @@ function initSocket(url) {
     lastGuessFeedback.style.display = 'none';
     correctGuessCard.style.display = 'none';
 
-    // Setup player mini stage
-    playerTimerMax = data.duration || 30;
-    playerTimerVal = data.duration || 30;
-    if (playerTimerInterval) clearInterval(playerTimerInterval);
-
-    // Show stage, reset to 3D spinner while image loads
-    playerStageWrap.style.display = 'flex';
-    if (playerObject3d) playerObject3d.style.display = 'block';
-    if (playerObjectCanvas) playerObjectCanvas.style.display = 'none';
-    updatePlayerTimerUI();
-
-    // Start timer immediately (synced with host, not gated on image load)
-    playerTimerInterval = setInterval(() => {
-      playerTimerVal--;
-      if (playerTimerVal <= 0) {
-        playerTimerVal = 0;
-        clearInterval(playerTimerInterval);
-      }
-      updatePlayerTimerUI();
-    }, 1000);
-
-    // Load image — swap 3D spinner for canvas when ready
-    if (data.imageUrl && playerObjectImage) {
-      playerObjectImage.src = data.imageUrl;
-      playerObjectImage.onload = () => {
-        if (playerObject3d) playerObject3d.style.display = 'none';
-        if (playerObjectCanvas) {
-          playerObjectCanvas.style.display = 'block';
-          drawPlayerPixelatedImage();
-        }
-      };
-    }
-
     showState('guessing');
   });
 
@@ -289,37 +190,26 @@ function initSocket(url) {
       // Clear input
       guessInput.value = '';
     } else {
-      // Show inline feedback for wrong guess
+      // Update the already-visible "Checking…" feedback with real result
       lastGuessText.textContent = `"${data.guess}"`;
-      
-      // Show descriptive feedback
+
       let scoreText = `${data.score}% similarity`;
       if (data.score > 70) scoreText = 'Very close! (' + scoreText + ')';
       else if (data.score > 40) scoreText = 'On the right track! (' + scoreText + ')';
       else scoreText = 'Incorrect (' + scoreText + ')';
-      
+
       lastGuessScore.textContent = scoreText;
+      lastGuessScore.style.color = 'var(--coral)';
       lastGuessFeedback.style.display = 'block';
-      
-      // Re-enable guess form for next input
+
+      // Re-enable for next guess
       guessInput.disabled = false;
       if (sendGuessBtn) sendGuessBtn.disabled = false;
-      guessInput.value = '';
       guessInput.focus();
     }
   });
 
   socket.on('roundReveal', (data) => {
-    // Stop player timer, show full-quality image
-    if (playerTimerInterval) clearInterval(playerTimerInterval);
-    playerTimerVal = 0;
-    updatePlayerTimerUI();
-    if (playerObjectCanvas && playerObjectImage && playerObjectImage.complete && playerObjectImage.naturalWidth > 0) {
-      if (playerObject3d) playerObject3d.style.display = 'none';
-      if (playerObjectCanvas) playerObjectCanvas.style.display = 'block';
-      drawPlayerPixelatedImage();
-    }
-
     revealRoundTitle.textContent = `Round ${currentRound} Reveal`;
     revealCorrectName.textContent = `Target object was: ${data.objectName.toUpperCase()}`;
     
@@ -396,6 +286,17 @@ avatarGrid.addEventListener('click', (e) => {
 const pandaOpt = document.querySelector('.avatar-opt[data-avatar="🐼"]');
 if (pandaOpt) pandaOpt.click();
 
+// When keyboard opens on mobile, scroll just enough to keep the input visible.
+// Uses the screen-wrapper's own scroll (not body), so the gradient never shifts.
+if (guessInput) {
+  guessInput.addEventListener('focus', () => {
+    setTimeout(() => {
+      guessInput.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }, 300);
+  });
+}
+
+
 // Join room click
 joinRoomBtn.addEventListener('click', () => {
   const code = roomCodeInput.value.trim().toUpperCase();
@@ -429,10 +330,17 @@ guessForm.addEventListener('submit', (e) => {
   const guess = guessInput.value.trim();
   if (!guess || !socket) return;
 
-  socket.emit('submitGuess', { guess: guess });
-  
-  // Disable input fields while evaluating
+  // Show instant optimistic feedback — don't make user wait for AI grading
+  lastGuessText.textContent = `"${guess}"`;
+  lastGuessScore.textContent = 'Checking…';
+  lastGuessScore.style.color = 'var(--ink-soft)';
+  lastGuessFeedback.style.display = 'block';
+
+  socket.emit('submitGuess', { guess });
+
+  // Disable while evaluating
   guessInput.disabled = true;
+  guessInput.value = '';
   if (sendGuessBtn) sendGuessBtn.disabled = true;
 });
 

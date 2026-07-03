@@ -220,8 +220,7 @@ body.demo-view {
 .standalone-container {
   width: 100%;
   max-width: 480px;
-  min-height: 100vh;
-  padding-bottom: 30px;
+  min-height: 100%;
   position: relative;
   z-index: 5;
 }
@@ -242,6 +241,8 @@ body.demo-view {
   flex-direction: column;
   height: 100%;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch; /* smooth momentum scroll on iOS */
+  padding-bottom: 30px;
 }
 
 .phone-screen .screen-wrapper {
@@ -488,22 +489,6 @@ body.demo-view {
   color: var(--ink-soft);
 }
 
-/* Player Mini Stage (mirrors host stage-wrap, slightly smaller) */
-.player-mini-stage {
-  position: relative;
-  margin: 10px auto 0;
-  width: 210px;
-  height: 210px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Scale down the stage-glass inside the player mini stage */
-.player-mini-stage .stage-glass {
-  width: 164px;
-  height: 164px;
-}
 
 /* Guessing View */
 .guess-input-card {
