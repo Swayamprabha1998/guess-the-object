@@ -9,6 +9,7 @@ let totalRounds = 5;
 let timerVal = 30;
 let timerMax = 30;
 let timerInterval = null;
+let roundStartTime = null; // wall-clock time when this round began
 
 // Elements
 const states = {
@@ -253,14 +254,19 @@ socket.on('startRound', (data) => {
   // Active State View
   showState('active');
   
+  // Record wall-clock start for pixel-sync
+  roundStartTime = Date.now();
   // Start countdown local interval
   startLocalTimer();
 });
 
 // Timer countdown logic
+let rafId = null;
 function startLocalTimer() {
   if (timerInterval) clearInterval(timerInterval);
-  
+  if (rafId) cancelAnimationFrame(rafId);
+
+  // Integer countdown for timer badge (every second)
   timerInterval = setInterval(() => {
     timerVal--;
     if (timerVal <= 0) {
@@ -269,6 +275,15 @@ function startLocalTimer() {
     }
     updateTimerUI();
   }, 1000);
+
+  // rAF loop for smooth continuous pixelation reveal (wall-clock based)
+  function rafLoop() {
+    if (timerVal > 0) {
+      drawPixelatedImage();
+      rafId = requestAnimationFrame(rafLoop);
+    }
+  }
+  rafId = requestAnimationFrame(rafLoop);
 }
 
 function updateTimerUI() {
@@ -309,8 +324,9 @@ function drawPixelatedImage() {
   }
   
   // Scale resolution from 6x6 blocks to 150x150 blocks
-  // Quadratic ease-in: detail resolution builds up faster near the end
-  const elapsedRatio = (timerMax - timerVal) / timerMax; // 0 to 1
+  // Use wall-clock time so host and player stay pixel-perfectly in sync
+  const elapsedMs = roundStartTime ? Date.now() - roundStartTime : 0;
+  const elapsedRatio = Math.min(1, elapsedMs / (timerMax * 1000)); // 0 to 1
   const minRes = 6;
   const maxRes = 150;
   const currentRes = Math.max(1, Math.floor(minRes + (maxRes - minRes) * Math.pow(elapsedRatio, 2)));

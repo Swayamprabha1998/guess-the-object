@@ -71,6 +71,8 @@ const playerTimerTextEl = document.getElementById('player-timer-text');
 let playerTimerVal = 30;
 let playerTimerMax = 30;
 let playerTimerInterval = null;
+let playerRafId = null;
+let playerRoundStartTime = null; // wall-clock time when this round began
 
 function updatePlayerTimerUI() {
   const min = Math.floor(playerTimerVal / 60);
@@ -99,7 +101,9 @@ function drawPlayerPixelatedImage() {
     ctx.drawImage(playerObjectImage, 0, 0, canvas.width, canvas.height);
     return;
   }
-  const elapsedRatio = (playerTimerMax - playerTimerVal) / playerTimerMax;
+  // Use wall-clock elapsed time so player stays pixel-perfectly in sync with host
+  const elapsedMs = playerRoundStartTime ? Date.now() - playerRoundStartTime : 0;
+  const elapsedRatio = Math.min(1, elapsedMs / (playerTimerMax * 1000));
   const currentRes = Math.max(1, Math.floor(6 + (150 - 6) * Math.pow(elapsedRatio, 2)));
   const tmp = document.createElement('canvas');
   tmp.width = tmp.height = currentRes;
@@ -268,17 +272,26 @@ function initSocket(url) {
     // ── Player stage ──
     playerTimerMax = data.duration || 30;
     playerTimerVal = data.duration || 30;
+    playerRoundStartTime = Date.now(); // wall-clock start for pixel-sync
     if (playerTimerInterval) clearInterval(playerTimerInterval);
     if (playerStageWrap) playerStageWrap.style.display = 'flex';
     if (playerObject3d)    playerObject3d.style.display = 'block';
     if (playerObjectCanvas) playerObjectCanvas.style.display = 'none';
     updatePlayerTimerUI();
-    // Start timer immediately — synced with host
+    // Start integer countdown for timer badge
     playerTimerInterval = setInterval(() => {
       playerTimerVal = Math.max(0, playerTimerVal - 1);
       if (playerTimerVal === 0) clearInterval(playerTimerInterval);
       updatePlayerTimerUI();
     }, 1000);
+    // rAF loop for smooth continuous pixelation reveal (wall-clock based)
+    if (playerRafId) cancelAnimationFrame(playerRafId);
+    (function rafLoop() {
+      if (playerTimerVal > 0) {
+        drawPlayerPixelatedImage();
+        playerRafId = requestAnimationFrame(rafLoop);
+      }
+    })();
     // Load image — proxied through server so it's same-origin, no CORS needed
     if (data.imageUrl && playerObjectImage) {
       playerObjectImage.removeAttribute('crossorigin');

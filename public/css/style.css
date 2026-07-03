@@ -888,18 +888,15 @@ body.demo-view {
   display: flex;
   align-items: center;
   justify-content: center;
-  /* Blur reveal and spin animations */
-  animation: reveal 30s ease-out forwards;
+  /* Reveal is handled by canvas pixelation — no CSS blur animation here */
 }
 
-/* Object image placeholder loaded dynamically */
+/* Canvas / image used for the pixelated reveal */
 .object-image {
   width: 100%;
   height: 100%;
   object-fit: contain;
   border-radius: 20px;
-  transform-style: preserve-3d;
-  animation: spin3d 6s linear infinite;
   display: none;
 }
 
@@ -917,12 +914,7 @@ body.demo-view {
   to { transform: rotateY(360deg) rotateX(8deg); }
 }
 
-@keyframes reveal {
-  0% { filter: blur(20px) saturate(0) brightness(1.2); }
-  50% { filter: blur(10px) saturate(0.5) brightness(1.1); }
-  90% { filter: blur(2px) saturate(1.1) brightness(1); }
-  100% { filter: blur(0px) saturate(1.25) brightness(1.02); }
-}
+/* @keyframes reveal removed — reveal handled by canvas pixelation in JS */
 
 /* Prism Facets */
 .facet {
