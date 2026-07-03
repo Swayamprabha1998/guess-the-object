@@ -1,5 +1,6 @@
 const express = require('express');
 const http = require('http');
+const https = require('https');
 const socketIo = require('socket.io');
 const QRCode = require('qrcode');
 const os = require('os');
@@ -30,6 +31,51 @@ if (process.env.OPENAI_API_KEY) {
 } else {
   console.log("No OpenAI API Key found. Running in offline/fallback mode.");
 }
+
+// Image proxy — fetches external images server-side and re-serves them from same origin.
+// This eliminates ALL canvas CORS taint issues (DALL-E, loremflickr, unsplash).
+function fetchUrlWithRedirects(url, res, maxRedirects = 5) {
+  if (maxRedirects === 0) {
+    if (!res.headersSent) res.status(500).send('Too many redirects');
+    return;
+  }
+  const client = url.startsWith('https') ? https : http;
+  const proxyReq = client.get(url, (proxyRes) => {
+    if ([301, 302, 303, 307, 308].includes(proxyRes.statusCode)) {
+      const location = proxyRes.headers.location;
+      if (!location) { if (!res.headersSent) res.status(500).send('Redirect missing location'); return; }
+      const newUrl = location.startsWith('http') ? location : new URL(location, url).href;
+      fetchUrlWithRedirects(newUrl, res, maxRedirects - 1);
+      return;
+    }
+    res.setHeader('Content-Type', proxyRes.headers['content-type'] || 'image/jpeg');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    proxyRes.pipe(res);
+  });
+  proxyReq.on('error', (err) => {
+    console.error('Proxy fetch error:', err.message);
+    if (!res.headersSent) res.status(502).send('Upstream error');
+  });
+}
+
+app.get('/api/proxy-image', (req, res) => {
+  const { url } = req.query;
+  if (!url || !url.startsWith('http')) return res.status(400).send('Invalid or missing url param');
+  fetchUrlWithRedirects(url, res);
+});
+
+// In-memory store for AI-generated images (base64 from gpt-image-1)
+// Keyed by imageId, cleaned up after 2 hours to prevent memory leaks
+const roundImages = {};
+
+app.get('/api/round-image/:imageId', (req, res) => {
+  const data = roundImages[req.params.imageId];
+  if (!data) return res.status(404).send('Image not found or expired');
+  res.setHeader('Content-Type', data.contentType || 'image/png');
+  res.setHeader('Cache-Control', 'public, max-age=7200');
+  res.send(Buffer.from(data.base64, 'base64'));
+});
 
 // Serve static assets
 app.use(express.static('public'));
@@ -66,72 +112,72 @@ console.log(`Local LAN IP for network devices: ${LOCAL_IP}`);
 const FALLBACK_OBJECTS = [
   {
     word: "rocket",
-    description: "A vehicle or device that obtains thrust from a rocket engine, used for space travel.",
+    description: "It flies really fast to outer space and makes a huge fire trail!",
     imageUrl: "https://images.unsplash.com/photo-1541185933-ef5d8ed016c2?w=400&q=80"
   },
   {
     word: "sneaker",
-    description: "A soft shoe with a rubber sole worn for sports or casual wear.",
+    description: "You wear it on your feet to run fast and jump high!",
     imageUrl: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&q=80"
   },
   {
     word: "guitar",
-    description: "A stringed musical instrument, typically with six strings, played by plucking or strumming.",
+    description: "You strum its strings with your fingers to make music!",
     imageUrl: "https://images.unsplash.com/photo-1510915361894-db8b60106cb1?w=400&q=80"
   },
   {
     word: "camera",
-    description: "A device for recording visual images in the form of photographs or film.",
+    description: "You click a button and it freezes a moment in time forever!",
     imageUrl: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=400&q=80"
   },
   {
     word: "donut",
-    description: "A small fried cake of sweetened dough, typically ring-shaped.",
+    description: "It's round with a hole in the middle and super sweet to eat!",
     imageUrl: "https://images.unsplash.com/photo-1551024601-bec78aea704b?w=400&q=80"
   },
   {
     word: "backpack",
-    description: "A bag with shoulder straps, carried on one's back.",
+    description: "Kids carry it on their back to school with books inside!",
     imageUrl: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&q=80"
   },
   {
     word: "headphones",
-    description: "A pair of tiny speaker drivers worn on or around the head over a user's ears.",
+    description: "You put it on your ears to listen to music without disturbing others!",
     imageUrl: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&q=80"
   },
   {
     word: "cactus",
-    description: "A succulent plant with a thick fleshy stem which typically bears spines and no leaves.",
+    description: "It's a prickly green plant that lives in the desert without much water!",
     imageUrl: "https://images.unsplash.com/photo-1459411552884-841db9b3cc2a?w=400&q=80"
   },
   {
     word: "robot",
-    description: "A machine capable of carrying out a complex series of actions automatically.",
+    description: "It's a metal machine that can walk, talk, and do things on its own!",
     imageUrl: "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=400&q=80"
   },
   {
-    word: "coffee cup",
-    description: "A container that coffee and espresso-based drinks are served in.",
+    word: "coffee mug",
+    description: "People hold it with both hands in the morning to warm up and wake up!",
     imageUrl: "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=400&q=80"
   },
   {
     word: "pineapple",
-    description: "A large juicy tropical fruit consisting of aromatic edible yellow flesh surrounded by a tough skin.",
+    description: "It has a spiky green crown on top and sweet yellow inside!",
     imageUrl: "https://images.unsplash.com/photo-1550258987-190a2d41a8ba?w=400&q=80"
   },
   {
     word: "laptop",
-    description: "A computer that is portable and suitable for use while traveling.",
+    description: "You fold it open, type on it, and use it to browse the internet!",
     imageUrl: "https://images.unsplash.com/photo-1496181130204-7552cc14ac1a?w=400&q=80"
   },
   {
     word: "pizza",
-    description: "A dish of Italian origin consisting of a flat, round base of dough baked with toppings.",
+    description: "It's a round flat thing with cheese on top that everyone loves at parties!",
     imageUrl: "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400&q=80"
   },
   {
     word: "diamond",
-    description: "A precious stone consisting of a clear and colorless crystalline form of pure carbon.",
+    description: "It's the hardest shiny thing on earth and very expensive!",
     imageUrl: "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=400&q=80"
   }
 ];
@@ -244,26 +290,41 @@ async function getNextRoundObject(usedWords = []) {
 
       const data = JSON.parse(response.choices[0].message.content.trim());
       
-      // Call DALL-E to generate image
-      console.log(`Generating AI image for word: "${data.word}"`);
-      const imageGen = await openai.images.generate({
-        model: "dall-e-3",
-        prompt: `A 3D clay model of a ${data.word}, cute and minimal, isolated, centered on a dark deep-indigo solid background, studio lighting, smooth clay textures, rich pastel colors, highly detailed 3D render`,
-        n: 1,
-        size: "1024x1024",
-        quality: "standard"
-      });
-      
-      const imageUrl = imageGen.data[0].url;
-      console.log(`AI Image URL generated: ${imageUrl}`);
-      
+      // Generate image — try gpt-image-1 (returns base64), fall back to Loremflickr
+      let imageUrl = `https://loremflickr.com/400/400/${encodeURIComponent(data.word)}?lock=${Date.now()}`;
+      try {
+        console.log(`Generating AI image for word: "${data.word}"`);
+        const imageGen = await openai.images.generate({
+          model: "gpt-image-2",
+          prompt: `A 3D clay model of a ${data.word}, cute and minimal, isolated on a dark indigo background, studio lighting, pastel colors, detailed render`,
+          n: 1,
+          size: "1024x1024",
+          quality: "low",          // fastest for a party game
+          output_format: "jpeg"    // jpeg is faster than png per OpenAI docs
+        });
+        // gpt-image-1 returns base64 — store server-side, serve via local route (no CORS)
+        const b64 = imageGen.data[0].b64_json;
+        if (b64) {
+          const imageId = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+          roundImages[imageId] = { base64: b64, contentType: 'image/jpeg' };
+          imageUrl = `/api/round-image/${imageId}`;
+          // Auto-clean after 2 hours
+          setTimeout(() => { delete roundImages[imageId]; }, 2 * 60 * 60 * 1000);
+          console.log(`gpt-image-2 image stored: /api/round-image/${imageId}`);
+        } else {
+          console.warn(`gpt-image-1 returned no b64_json for "${data.word}"`);
+        }
+      } catch (imgErr) {
+        console.warn(`Image generation unavailable, using Loremflickr for "${data.word}":`, imgErr.message);
+      }
+
       return {
         word: data.word,
         description: data.description,
-        imageUrl: imageUrl
+        imageUrl
       };
     } catch (err) {
-      console.error("AI Object generation failed, falling back to local presets:", err);
+      console.error("AI word generation failed, falling back to local presets:", err.message);
     }
   }
 
@@ -528,6 +589,7 @@ io.on('connection', (socket) => {
       room.currentRound = 0;
       room.usedWords = [];
       room.targetObject = null;
+      room.prefetchedObject = null;
       
       // Reset players scores and state flags
       room.players.forEach(p => {
@@ -575,43 +637,145 @@ io.on('connection', (socket) => {
   });
 });
 
+// Generate a word + description (fast, no image)
+async function generateWordObject(usedWords = []) {
+  if (openai) {
+    try {
+      const avoidPrompt = usedWords.length > 0
+        ? `Do NOT generate any of these objects: ${usedWords.join(', ')}.` : '';
+      const prompt = `You are creating a clue for a party guessing game. Pick a fun, recognizable everyday object (like 'alarm clock', 'guitar', 'sneaker', 'hourglass'). ${avoidPrompt}
+      Write a SHORT 1-sentence clue that describes what the object DOES or what it LOOKS like — in simple, fun language anyone can understand.
+      CRITICAL RULES:
+      - NEVER say the object's name or any synonym/related word in the clue
+      - Use simple words (no complex vocabulary)
+      - Make it fun and playful, like a riddle
+      - Max 15 words
+      Return ONLY a JSON object:
+      { "word": "object name in 1-3 words", "description": "your clue here" }`;
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [{ role: "user", content: prompt }],
+        response_format: { type: "json_object" },
+        temperature: 0.8
+      });
+      const data = JSON.parse(response.choices[0].message.content.trim());
+      return { word: data.word, description: data.description, imageUrl: null };
+    } catch (err) {
+      console.error("AI word generation failed:", err.message);
+    }
+  }
+  // Fallback preset
+  const available = FALLBACK_OBJECTS.filter(o => !usedWords.includes(o.word));
+  const pool = available.length > 0 ? available : FALLBACK_OBJECTS;
+  return { ...pool[Math.floor(Math.random() * pool.length)] };
+}
+
+// Generate an AI image for a given word, store it server-side, return local URL
+async function generateAndStoreImage(word) {
+  try {
+    console.log(`Generating AI image for "${word}"...`);
+    const imageGen = await openai.images.generate({
+      model: "gpt-image-2",
+      prompt: `A 3D clay model of a ${word}, cute and minimal, isolated on a dark indigo background, studio lighting, pastel colors, detailed render`,
+      n: 1,
+      size: "1024x1024",
+      quality: "low",
+      output_format: "jpeg"
+    });
+    const b64 = imageGen.data[0].b64_json;
+    if (!b64) return null;
+    const imageId = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    roundImages[imageId] = { base64: b64, contentType: 'image/jpeg' };
+    setTimeout(() => { delete roundImages[imageId]; }, 2 * 60 * 60 * 1000);
+    console.log(`AI image ready for "${word}": /api/round-image/${imageId}`);
+    return `/api/round-image/${imageId}`;
+  } catch (err) {
+    console.warn(`AI image failed for "${word}": ${err.message}`);
+    return null;
+  }
+}
+
 // Helper: Start New Round
 async function startNewRound(room) {
   room.state = 'GUESSING';
   room.currentRound++;
-  
-  // Reset round scores and flags for players
+
   room.players.forEach(p => {
     p.lastRoundScore = 0;
     p.guessedCorrectly = false;
     p.guesses = [];
   });
-  
-  // Pick next object
-  console.log(`Preparing Round ${room.currentRound} object...`);
-  const nextObject = await getNextRoundObject(room.usedWords);
+
+  // ── Always show "Get Ready" countdown before every round ─────────────────
+  io.to(room.roomCode).emit('roundPreparing', {
+    roundIndex: room.currentRound,
+    totalRounds: room.totalRounds,
+    countdown: 5
+  });
+
+  // ── Get next object — pre-fetched or generate fresh ───────────────────────
+  let nextObject;
+  if (room.prefetchedObject && room.prefetchedObject.imageUrl) {
+    // Word + image both ready — just honour the 5-second countdown
+    nextObject = room.prefetchedObject;
+    room.prefetchedObject = null;
+    console.log(`Round ${room.currentRound}: pre-fetched "${nextObject.word}" (image ready) — waiting countdown...`);
+    await new Promise(resolve => setTimeout(resolve, 5000));
+  } else if (room.prefetchedObject && !room.prefetchedObject.imageUrl) {
+    // Word pre-fetched but image generation failed — retry image, wait at least 5 seconds
+    nextObject = room.prefetchedObject;
+    room.prefetchedObject = null;
+    console.log(`Round ${room.currentRound}: pre-fetched word "${nextObject.word}" but image failed — regenerating image...`);
+    const [aiUrl] = await Promise.all([
+      generateAndStoreImage(nextObject.word),
+      new Promise(resolve => setTimeout(resolve, 5000))
+    ]);
+    if (aiUrl) nextObject.imageUrl = aiUrl;
+    console.log(`Round ${room.currentRound}: ready — "${nextObject.word}" image: ${nextObject.imageUrl ? 'AI (retry)' : 'fallback'}`);
+  } else {
+    // No pre-fetch — generate word + AI image, wait at least 5 seconds
+    console.log(`Round ${room.currentRound}: generating word + image...`);
+    nextObject = await generateWordObject(room.usedWords);
+    const [aiUrl] = await Promise.all([
+      generateAndStoreImage(nextObject.word),
+      new Promise(resolve => setTimeout(resolve, 5000))
+    ]);
+    if (aiUrl) nextObject.imageUrl = aiUrl;
+    console.log(`Round ${room.currentRound}: ready — "${nextObject.word}" image: ${nextObject.imageUrl ? 'AI' : 'fallback'}`);
+  }
+
   room.targetObject = nextObject;
   room.usedWords.push(nextObject.word);
-  
-  console.log(`Round ${room.currentRound} Target: "${nextObject.word}"`);
-  
-  // Broadcast to all room sockets to start round
+
+  // ── Determine image URL to send ───────────────────────────────────────────
+  let initialImageUrl;
+  if (nextObject.imageUrl && nextObject.imageUrl.startsWith('/')) {
+    initialImageUrl = nextObject.imageUrl;  // local AI image — no proxy needed
+  } else if (nextObject.imageUrl && nextObject.imageUrl.startsWith('http')) {
+    initialImageUrl = `/api/proxy-image?url=${encodeURIComponent(nextObject.imageUrl)}`;
+  } else {
+    initialImageUrl = `/api/proxy-image?url=${encodeURIComponent(
+      `https://loremflickr.com/400/400/${encodeURIComponent(nextObject.word)}?lock=${Date.now()}`
+    )}`;
+  }
+
+  // ── Broadcast startRound ──────────────────────────────────────────────────
   io.to(room.roomCode).emit('startRound', {
     roundIndex: room.currentRound,
     totalRounds: room.totalRounds,
     duration: room.roundDuration,
-    imageUrl: nextObject.imageUrl,
+    imageUrl: initialImageUrl,
     description: nextObject.description,
     wordPattern: getWordPattern(nextObject.word)
   });
-  
-  // Start server-side countdown timer on the room object
+
+  // ── Send initial leaderboard so all players appear immediately ───────────
+  const sortedPlayers = [...room.players].sort((a, b) => b.score - a.score);
+  io.to(room.hostSocketId).emit('updateLeaderboard', sortedPlayers);
+
+  // ── Start countdown timer ─────────────────────────────────────────────────
   room.timeLeft = room.roundDuration;
-  
-  if (room.timerInterval) {
-    clearInterval(room.timerInterval);
-  }
-  
+  if (room.timerInterval) clearInterval(room.timerInterval);
   room.timerInterval = setInterval(() => {
     room.timeLeft--;
     if (room.timeLeft <= 0) {
@@ -619,6 +783,18 @@ async function startNewRound(room) {
       revealRound(room);
     }
   }, 1000);
+
+  // ── Pre-fetch NEXT round's word + AI image during current round ───────────
+  if (openai && room.currentRound < room.totalRounds) {
+    (async () => {
+      const futureUsed = [...room.usedWords];
+      const preObj = await generateWordObject(futureUsed);
+      const preImageUrl = await generateAndStoreImage(preObj.word);
+      preObj.imageUrl = preImageUrl;
+      room.prefetchedObject = preObj;
+      console.log(`Pre-fetched round ${room.currentRound + 1}: "${preObj.word}" (image: ${preImageUrl ? 'ready' : 'failed'})`);
+    })();
+  }
 }
 
 // Helper: Reveal Round

@@ -210,7 +210,40 @@ function initSocket(url) {
     console.log('Game restarted by host. Returned to waiting lobby.');
   });
 
+  // "Get Ready" countdown while round image generates
+  let playerPrepInterval = null;
+  let playerDotInterval = null;
+  socket.on('roundPreparing', (data) => {
+    showState('waiting');
+    let secs = data.countdown || 5;
+    const statusEl = document.getElementById('waiting-status-text');
+    const titleEl  = document.getElementById('me-waiting-name');
+    titleEl.textContent  = `Round ${data.roundIndex} of ${data.totalRounds}`;
+    statusEl.textContent = `Starting in ${secs}...`;
+    if (playerPrepInterval) clearInterval(playerPrepInterval);
+    if (playerDotInterval) clearInterval(playerDotInterval);
+    playerDotInterval = null;
+    playerPrepInterval = setInterval(() => {
+      secs--;
+      if (secs <= 0) {
+        clearInterval(playerPrepInterval);
+        playerPrepInterval = null;
+        // Countdown done — now waiting for image to generate
+        let dots = 0;
+        statusEl.textContent = `Generating image.`;
+        playerDotInterval = setInterval(() => {
+          dots = (dots + 1) % 4;
+          statusEl.textContent = `Generating image${'.'.repeat(dots) || ''}`;
+        }, 500);
+      } else {
+        statusEl.textContent = `Starting in ${secs}...`;
+      }
+    }, 1000);
+  });
+
   socket.on('startRound', (data) => {
+    if (playerPrepInterval) { clearInterval(playerPrepInterval); playerPrepInterval = null; }
+    if (playerDotInterval) { clearInterval(playerDotInterval); playerDotInterval = null; }
     currentRound = data.roundIndex;
     guessingRoundTitle.textContent = `Round ${currentRound} / ${data.totalRounds}`;
     guessingScore.textContent = `Score: ${currentScore}%`;
@@ -246,16 +279,31 @@ function initSocket(url) {
       if (playerTimerVal === 0) clearInterval(playerTimerInterval);
       updatePlayerTimerUI();
     }, 1000);
-    // Load image, swap spinner → canvas when ready
+    // Load image — proxied through server so it's same-origin, no CORS needed
     if (data.imageUrl && playerObjectImage) {
+      playerObjectImage.removeAttribute('crossorigin');
       playerObjectImage.src = data.imageUrl;
       playerObjectImage.onload = () => {
         if (playerObject3d)     playerObject3d.style.display = 'none';
         if (playerObjectCanvas) { playerObjectCanvas.style.display = 'block'; drawPlayerPixelatedImage(); }
       };
+      playerObjectImage.onerror = () => {
+        console.warn('Player object image failed to load:', data.imageUrl);
+      };
     }
 
     showState('guessing');
+  });
+
+  // AI image arrives mid-round — swap it in seamlessly
+  socket.on('roundImageReady', (data) => {
+    if (!playerObjectImage) return;
+    playerObjectImage.src = data.imageUrl;
+    playerObjectImage.onload = () => {
+      if (playerObject3d)     playerObject3d.style.display = 'none';
+      if (playerObjectCanvas) { playerObjectCanvas.style.display = 'block'; drawPlayerPixelatedImage(); }
+    };
+    playerObjectImage.onerror = () => console.warn('roundImageReady load failed:', data.imageUrl);
   });
 
   socket.on('guessResult', (data) => {

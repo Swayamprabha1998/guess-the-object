@@ -158,12 +158,62 @@ socket.on('gameRestarted', (players) => {
   console.log('Game successfully restarted.');
 });
 
+// "Get Ready" countdown shown while round image generates
+let prepCountdownInterval = null;
+let prepDotInterval = null;
+socket.on('roundPreparing', (data) => {
+  // Show active state with a countdown overlay
+  showState('active');
+  revealOverlay.style.display = 'none';
+  roundPill.textContent = `Round ${data.roundIndex} / ${data.totalRounds}`;
+
+  // Clear stale hint card from previous round
+  if (hostHintDescription) hostHintDescription.textContent = 'Generating clue...';
+  if (hostHintBlanks)      hostHintBlanks.textContent = '';
+  if (hostHintCount)       hostHintCount.textContent = '';
+
+  // Reset stage to spinner
+  objectImage.src = '';
+  objectCanvas.style.display = 'none';
+  objectPlaceholder.style.display = 'block';
+
+  // Show countdown badge on timer text
+  let secs = data.countdown || 5;
+  timerText.textContent = `00:0${secs}`;
+  timerRing.style.background = `rgba(124, 92, 252, 0.12)`;
+
+  // Animate the countdown
+  if (prepCountdownInterval) clearInterval(prepCountdownInterval);
+  if (prepDotInterval) { clearInterval(prepDotInterval); prepDotInterval = null; }
+  prepCountdownInterval = setInterval(() => {
+    secs--;
+    if (secs <= 0) {
+      clearInterval(prepCountdownInterval);
+      prepCountdownInterval = null;
+      // Countdown done — waiting for image generation
+      const dotFrames = ['·  ', '·· ', '···', ' ··', '  ·'];
+      let dotIdx = 0;
+      timerText.textContent = dotFrames[0];
+      prepDotInterval = setInterval(() => {
+        dotIdx = (dotIdx + 1) % dotFrames.length;
+        timerText.textContent = dotFrames[dotIdx];
+      }, 350);
+    } else {
+      timerText.textContent = `00:0${secs}`;
+    }
+  }, 1000);
+});
+
 // Start Round handler
 socket.on('startRound', (data) => {
+  // Clear any prep countdown/dot animation still running
+  if (prepCountdownInterval) { clearInterval(prepCountdownInterval); prepCountdownInterval = null; }
+  if (prepDotInterval) { clearInterval(prepDotInterval); prepDotInterval = null; }
+
   currentRound = data.roundIndex;
   totalRounds = data.totalRounds;
   roundPill.textContent = `Round ${currentRound} / ${totalRounds}`;
-  
+
   // Hide Reveal Box
   revealOverlay.style.display = 'none';
   
@@ -177,15 +227,16 @@ socket.on('startRound', (data) => {
   objectCanvas.style.display = 'none';
   objectPlaceholder.style.display = 'block';
   
-  // Set object image source
+  // Image is served from same-origin proxy — no crossOrigin needed
+  objectImage.removeAttribute('crossorigin');
   objectImage.src = data.imageUrl || '';
   objectImage.onload = () => {
-    // Hide spinning facet loader, reveal canvas
     objectPlaceholder.style.display = 'none';
     objectCanvas.style.display = 'block';
-    
-    // Draw initial pixelated image
     drawPixelatedImage();
+  };
+  objectImage.onerror = () => {
+    console.warn('Object image failed to load:', data.imageUrl);
   };
   
   // Update hint card
@@ -394,6 +445,17 @@ socket.on('roundReveal', (data) => {
   
   // Display the overlay
   revealOverlay.style.display = 'flex';
+});
+
+// AI image pushed when ready (arrives during the round, after startRound)
+socket.on('roundImageReady', (data) => {
+  objectImage.src = data.imageUrl;
+  objectImage.onload = () => {
+    objectPlaceholder.style.display = 'none';
+    objectCanvas.style.display = 'block';
+    drawPixelatedImage();
+  };
+  objectImage.onerror = () => console.warn('roundImageReady load failed:', data.imageUrl);
 });
 
 // Next round trigger
