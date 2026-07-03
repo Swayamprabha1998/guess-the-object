@@ -960,7 +960,7 @@ function revealRound(room) {
 // Start Server
 server.listen(PORT, () => {
   console.log(`========================================`);
-  console.log(`PixelQuest AI Game Server started!`);
+  console.log(`Revealio Game Server started!`);
   console.log(`Local Access: http://localhost:${PORT}`);
   console.log(`Network LAN Access: http://${LOCAL_IP}:${PORT}`);
   console.log(`Demo/Split View: http://${LOCAL_IP}:${PORT}/demo.html`);
